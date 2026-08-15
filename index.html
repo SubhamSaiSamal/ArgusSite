@@ -206,6 +206,19 @@
   .spin{display:inline-block;width:11px;height:11px;border:2px solid rgba(255,255,255,.2);
     border-top-color:currentColor;border-radius:50%;animation:sp .7s linear infinite}
   @keyframes sp{to{transform:rotate(360deg)}}
+  /* segmented control for the interactive result switchers (section 06/07) */
+  .segbar{display:flex;gap:7px;flex-wrap:wrap}
+  .segbar button{background:var(--panel2);color:var(--dim);border:1px solid var(--line);
+    border-radius:7px;padding:9px 14px}
+  .segbar button:hover{color:var(--txt);border-color:var(--line2)}
+  .segbar button.on{background:var(--accd);color:var(--acc);border-color:var(--acc)}
+  .lgd{display:flex;gap:15px;flex-wrap:wrap;font:11px var(--mono);color:var(--dim)}
+  .lgd i{display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:6px;
+    vertical-align:middle}
+  .spstat{display:flex;justify-content:space-between;gap:12px;padding:9px 0;
+    border-bottom:1px solid var(--line);font:12px var(--mono)}
+  .spstat:last-child{border-bottom:0}
+  .spstat span:first-child{color:var(--dim)}
   svg .ax{stroke:var(--line2);stroke-width:1}
   svg .gr{stroke:var(--line);stroke-width:1;stroke-dasharray:2 4}
   svg text{fill:var(--dim2);font:9.5px var(--mono)}
@@ -220,7 +233,8 @@
   <div class="logo"><span class="mark"></span>ARGUS</div>
   <div class="links">
     <a href="#detect">Detection</a><a href="#inside">Inside</a><a href="#space">Latent space</a>
-    <a href="#results">Results</a><a href="#failed">Negatives</a>
+    <a href="#results">Results</a><a href="#finding">Finding</a><a href="#general">Generalises?</a>
+    <a href="#config">Tuning</a><a href="#noise">Noise floor</a><a href="#failed">Negatives</a>
   </div>
 </div></nav>
 
@@ -259,9 +273,9 @@
   <div class="statbar">
     <div><b>5</b><span>Labelled examples</span></div>
     <div><b>40</b><span>Species pretrained</span></div>
-    <div><b>1280</b><span>Verifier dimensions</span></div>
-    <div><b>0.628</b><span>Event F1 · held out</span></div>
-    <div><b>0.2</b><span>False alarms per hit</span></div>
+    <div><b>1536</b><span>Verifier dimensions</span></div>
+    <div><b>0.711</b><span>Species AUC · verified</span></div>
+    <div><b>+0.202</b><span>Gain from verification</span></div>
   </div>
 </div></div>
 
@@ -474,25 +488,169 @@
   <div class="shead"><span class="snum">05</span><h2>The finding</h2></div>
   <p class="sdesc">A detector can score well on event detection while carrying almost no
   information about <em>which</em> species it heard.</p>
+
+  <div class="card tight" style="margin-bottom:16px">
+    <div class="label" style="margin-bottom:10px">Species discrimination · before and after verification</div>
+    <div id="findChart"></div>
+    <div class="lgd" id="findLgd" style="margin-top:8px"></div>
+    <p class="note" style="margin-top:10px;font-size:12.5px">0.50 is the coin-flip line: the
+    detector cannot tell the target from an acoustically similar decoy at all. Stage 1 lands
+    on it almost exactly. Verification is what moves it.</p>
+  </div>
+
   <div class="grid g2">
     <div class="card"><div class="step">Control</div><h3>It was hearing birds, not the bird</h3>
-      <p>We planted the target and four acoustically similar decoys into the same recordings at
-      the same loudness. Stage 1's species discrimination came out at
-      <b class="mono" style="color:var(--bad)">0.459</b> — below chance. It scored the wrong
-      species marginally <em>higher</em> than the right one.</p></div>
-    <div class="card"><div class="step">Consequence</div><h3>The standard metric picks the wrong model</h3>
-      <p>Ranked by average precision, the winning configuration scores
-      <b class="mono">0.500</b> on species identity — exactly chance. Optimising the number
-      everyone reports would have selected the <em>least</em> species-specific model we built.</p></div>
+      <p>We plant the target <em>and</em> four acoustically similar decoy species into the same
+      recordings at the same loudness, then ask a threshold-free question: does the target
+      score above the decoy? Stage 1 alone answers
+      <b class="mono" style="color:var(--warn)">0.509</b> — statistically indistinguishable
+      from guessing. It reliably hears <em>a</em> bird; it carries almost no information about
+      <em>which</em>.</p></div>
+    <div class="card"><div class="step">Fix</div><h3>A second opinion recovers the identity</h3>
+      <p>Passing every stage-1 candidate to a Perch-embedding verifier lifts species AUC to
+      <b class="mono" style="color:var(--ok)">0.711</b> — a gain of
+      <b class="mono">+0.202</b>, holding for both species tested. False alarms on
+      bird-free audio fall by roughly <b class="mono">92%</b>
+      (97.0 → 8.0 and 57.8 → 4.7 per hour).</p></div>
   </div>
-  <div class="callout">Stated honestly: one target species, and the seed-to-seed spread is not
-  yet fully characterised. Testing whether this holds across more species is the next
-  experiment, not a settled result.</div>
+
+  <div class="callout warn"><b>A number we retired, and why.</b> An earlier build reported
+  stage-1 at <span class="mono">0.459</span> — below chance. That figure came from a
+  superseded pipeline (Perch&nbsp;v1, missing input normalisation, and a leak that let support
+  recordings into the held-out pool). Critically, <b>decoys are ranked by Perch embedding
+  similarity</b>, so upgrading the embedding model re-drew which species act as decoys and
+  changed the difficulty of the test itself. The old number is not comparable to the current
+  one, so we retired it rather than quietly restating it. Two independent runs of the current
+  pipeline agree: <span class="mono">0.517</span> and <span class="mono">0.509</span>.</div>
 </div></section>
 
-<!-- 06 · NEGATIVES -->
+<!-- 06 · GENERALISATION -->
+<section id="general"><div class="wrap">
+  <div class="shead"><span class="snum">06</span><h2>Does it generalise?</h2></div>
+  <p class="sdesc">A result on one bird is an anecdote. The pipeline now runs the identical
+  protocol across multiple target species — each with its own five examples, its own four
+  hardest decoys, and an encoder that has never seen it.</p>
+
+  <div class="segbar" id="spSeg"></div>
+  <div class="grid g2" style="margin-top:14px">
+    <div class="card tight">
+      <div class="label" style="margin-bottom:10px">Per-species · stage 1 vs verified</div>
+      <div id="genChart"></div>
+      <div class="lgd" id="genLgd" style="margin-top:8px"></div>
+    </div>
+    <div class="card tight" id="spDetail"></div>
+  </div>
+
+  <div class="callout"><b>Outcome A — it generalises, so far.</b> Verification helped
+  <b>2 of 2</b> species; neither fell below chance after verification. Mean gain
+  <span class="mono">+0.202</span> (SE 0.070). But two species is a smoke test, not a study —
+  the pre-registered target list runs to 8–12 species, and this claim gets re-tested against
+  all of them before it goes in a paper. The two species also differ enormously in available
+  data (22 vs 500 recordings), which is itself informative: the gain was <em>larger</em> for
+  the data-rich species.</div>
+</div></section>
+
+<!-- 07 · CONFIGURATION -->
+<section id="config"><div class="wrap">
+  <div class="shead"><span class="snum">07</span><h2>Choosing the configuration</h2></div>
+  <p class="sdesc">Every knob below was measured rather than assumed — including the ones
+  where the published literature turned out not to transfer. Switch the metric to see how
+  each choice trades off.</p>
+
+  <div class="segbar" id="metSeg"></div>
+
+  <div class="grid g2" style="margin-top:14px">
+    <div class="card tight">
+      <div class="label" style="margin-bottom:4px">How many examples do you actually need?</div>
+      <p class="note" style="margin:0 0 10px;font-size:12.5px">The premise of the whole
+      project is "five". This tests it.</p>
+      <div id="shotChart"></div>
+      <div class="lgd" id="shotLgd" style="margin-top:8px"></div>
+      <p class="note" style="margin-top:10px;font-size:12.5px"><b>Read the plateau, not the
+      peak.</b> Going 1→3 buys <span class="mono">+0.105</span>. Going 5→10 buys
+      <span class="mono">+0.019</span> — inside the noise floor. Five is the point where
+      more effort in the field stops paying for itself.</p>
+    </div>
+    <div class="card tight">
+      <div class="label" style="margin-bottom:4px">Which five examples?</div>
+      <p class="note" style="margin:0 0 10px;font-size:12.5px">Nobody has published this for
+      few-shot bioacoustics. It turns out to matter more than most architecture choices.</p>
+      <div id="stratChart"></div>
+      <p class="note" style="margin-top:10px;font-size:12.5px">Spread across strategies is
+      <span class="mono">0.118</span> AUC — about half the entire gain from verification.
+      Picking the highest-quality recordings beats the DCASE convention of simply taking the
+      first five by <span class="mono">+0.117</span>.</p>
+    </div>
+  </div>
+
+  <div class="card tight" style="margin-top:15px">
+    <div class="label" style="margin-bottom:4px">Published techniques, tested here</div>
+    <p class="note" style="margin:0 0 10px;font-size:12.5px">Each bar is one configuration.
+    The dashed line is our baseline; the grey band is the measured noise floor — anything
+    inside it is not a real effect.</p>
+    <div id="ladChart"></div>
+    <p class="note" style="margin-top:10px;font-size:12.5px">Partial run: 6 of 16
+    configurations completed before the session was cut short. The prototypical-probe arm is
+    not represented here — the run was ordered so that every configuration testing it came
+    last, which we have since fixed.</p>
+  </div>
+
+  <div class="grid g2" style="margin-top:15px">
+    <div class="card"><div class="step">Contradicts the literature</div>
+      <h3>PCEN beats log-Mel here</h3>
+      <p>Three paired comparisons, PCEN wins all three (<span class="mono">+0.148</span>,
+      <span class="mono">+0.111</span>, <span class="mono">+0.081</span>). The DCASE 2024
+      winner reported the opposite on <em>F1</em> — but the same literature shows PCEN winning
+      on <em>precision</em>, and species discrimination is a precision-shaped problem. The
+      right front-end depends on which question you are asking.</p></div>
+    <div class="card"><div class="step">Did not transfer</div>
+      <h3>TimeFilterAug hurt, consistently</h3>
+      <p>A DCASE-winning augmentation cost <span class="mono">−0.155</span> AUC on PCEN and
+      <span class="mono">−0.088</span> on log-Mel, and damaged stage-1 scores independently of
+      which verifier was used. Our best explanation: it was tuned for a full-scale training
+      budget, and ARGUS fine-tunes for 250 steps on five examples. Dropped.</p></div>
+  </div>
+</div></section>
+
+<!-- 08 · NOISE FLOOR -->
+<section id="noise"><div class="wrap">
+  <div class="shead"><span class="snum">08</span><h2>How we know what's real</h2></div>
+  <p class="sdesc">The most useful measurement in this project was an accident. It decides
+  which of the results above we are allowed to believe.</p>
+
+  <div class="grid g2">
+    <div class="card"><div class="step">The accident</div><h3>The same experiment, twice</h3>
+      <p>One configuration was run identically in two separate sessions — same species, same
+      seeds, same code. It scored <b class="mono">0.696</b> once and <b class="mono">0.731</b>
+      the next time. Nothing differed but GPU scheduling: convolution backward passes are not
+      bit-reproducible even with a fixed random seed.</p>
+      <p class="note" style="margin-top:9px">That <b class="mono">0.035</b> gap is the noise
+      floor — the smallest difference this setup can actually resolve.</p></div>
+    <div class="card"><div class="step">The consequence</div><h3>One verdict had to be withdrawn</h3>
+      <p>Before the floor was known, the pipeline reported the prototypical probe as
+      <em>hurting</em>, with a confident-looking <span class="mono">d/SE = −3.02</span>. But
+      that standard error only measured variation <em>within</em> a run. The actual effect,
+      <span class="mono">−0.005</span>, is seven times <em>smaller</em> than the noise floor.
+      It is indistinguishable from zero, and the verdict was retracted.</p></div>
+  </div>
+
+  <div class="card tight" style="margin-top:15px">
+    <div class="label" style="margin-bottom:10px">Every measured effect against the noise floor</div>
+    <div id="noiseChart"></div>
+    <p class="note" style="margin-top:10px;font-size:12.5px">Bars inside the grey band are
+    not distinguishable from run-to-run randomness, regardless of how confident the
+    surrounding statistics look.</p>
+  </div>
+
+  <div class="callout"><b>Why this is in the write-up at all.</b> It would have been easy to
+  report the prototypical probe as a clean negative result and move on. Measuring the floor
+  first is what separates a real effect from an artefact of the hardware — and it forced us
+  to withdraw a conclusion we had already drawn.</div>
+</div></section>
+
+<!-- 09 · NEGATIVES -->
 <section id="failed"><div class="wrap">
-  <div class="shead"><span class="snum">06</span><h2>What did not work</h2></div>
+  <div class="shead"><span class="snum">09</span><h2>What did not work</h2></div>
   <p class="sdesc">Every mechanism tried, and its verdict. A clean record of honest negatives is
   what separates a research project from a demo — these are kept deliberately, not hidden.</p>
   <div class="card tbl-scroll">
@@ -569,6 +727,176 @@ function lineChart(el,series,xlabels,xl,yl){
 }
 function legend(el,items){el.innerHTML=items.map(i=>
   `<span><i style="background:${i.color}"></i>${i.name}</span>`).join('')}
+
+/* Horizontal bars. Draw order is grid -> band -> reference -> bars so the noise band sits
+   behind the data rather than washing it out. */
+function barChart(el,items,opt={}){
+  const w=520,rowH=opt.rowH||32,m={l:opt.l??178,r:58,t:10,b:36};
+  const h=m.t+m.b+items.length*rowH;
+  const v0=opt.x0??0, v1=opt.x1??Math.max(...items.map(i=>i.value))*1.14;
+  const sx=v=>m.l+((v-v0)/((v1-v0)||1))*(w-m.l-m.r);
+  const fmt=opt.fmt||(v=>v.toFixed(3));
+  let s=svgEl(w,h);
+  for(let i=0;i<=4;i++){const x=(m.l+(i/4)*(w-m.l-m.r)).toFixed(1);
+    s+=`<line class="gr" x1="${x}" y1="${m.t}" x2="${x}" y2="${h-m.b}"/>`
+      +`<text x="${x}" y="${h-m.b+14}" text-anchor="middle">${fmt(v0+(i/4)*(v1-v0))}</text>`}
+  if(opt.band){const a=sx(Math.max(v0,opt.band[0])),b=sx(Math.min(v1,opt.band[1]));
+    s+=`<rect x="${a.toFixed(1)}" y="${m.t}" width="${Math.max(0,b-a).toFixed(1)}"
+        height="${(h-m.t-m.b).toFixed(1)}" fill="#6b7280" fill-opacity=".17"/>`}
+  if(opt.ref!=null){const rx=sx(opt.ref).toFixed(1);
+    s+=`<line x1="${rx}" y1="${m.t}" x2="${rx}" y2="${h-m.b}" stroke="${C.acc}"
+        stroke-width="1.4" stroke-dasharray="4 3"/>`}
+  s+=`<line class="ax" x1="${m.l}" y1="${h-m.b}" x2="${w-m.r}" y2="${h-m.b}"/>`;
+  items.forEach((it,i)=>{
+    const y=m.t+i*rowH+5,bh=rowH-14,bw=Math.max(1.5,sx(it.value)-m.l);
+    s+=`<rect x="${m.l}" y="${y}" width="${bw.toFixed(1)}" height="${bh}" rx="3"
+        fill="${it.color}" fill-opacity="${it.strong?.95:.68}"/>`
+      +`<text x="${m.l-9}" y="${(y+bh/2+3.5).toFixed(1)}" text-anchor="end">${it.label}</text>`
+      +`<text x="${(sx(it.value)+7).toFixed(1)}" y="${(y+bh/2+3.5).toFixed(1)}"
+        fill="${it.color}">${fmt(it.value)}</text>`});
+  if(opt.xl)s+=`<text class="lbl" x="${((w+m.l-m.r)/2).toFixed(1)}" y="${h-3}" text-anchor="middle">${opt.xl}</text>`;
+  el.innerHTML=s+'</svg>';
+}
+
+/* Before/after on one row per item, with the 0.50 chance line marked. */
+function dumbbell(el,rows,opt={}){
+  const w=520,rowH=opt.rowH||54,m={l:opt.l??132,r:52,t:18,b:38};
+  const h=m.t+m.b+rows.length*rowH;
+  const v0=opt.x0??.42,v1=opt.x1??.86;
+  const sx=v=>m.l+((v-v0)/((v1-v0)||1))*(w-m.l-m.r);
+  let s=svgEl(w,h);
+  for(let i=0;i<=4;i++){const x=(m.l+(i/4)*(w-m.l-m.r)).toFixed(1);
+    s+=`<line class="gr" x1="${x}" y1="${m.t}" x2="${x}" y2="${h-m.b}"/>`
+      +`<text x="${x}" y="${h-m.b+14}" text-anchor="middle">${(v0+(i/4)*(v1-v0)).toFixed(2)}</text>`}
+  if(v0<.5&&v1>.5){const cx=sx(.5).toFixed(1);
+    s+=`<line x1="${cx}" y1="${m.t}" x2="${cx}" y2="${h-m.b}" stroke="${C.bad}"
+        stroke-width="1.3" stroke-dasharray="3 3"/>`
+      +`<text x="${cx}" y="${m.t-6}" text-anchor="middle" fill="${C.bad}">chance</text>`}
+  s+=`<line class="ax" x1="${m.l}" y1="${h-m.b}" x2="${w-m.r}" y2="${h-m.b}"/>`;
+  rows.forEach((r,i)=>{
+    const y=(m.t+i*rowH+rowH/2).toFixed(1),a=sx(r.a),b=sx(r.b);
+    s+=`<line x1="${a.toFixed(1)}" y1="${y}" x2="${b.toFixed(1)}" y2="${y}"
+        stroke="${C.acc}" stroke-width="2.5" stroke-opacity=".45"/>`
+      +`<circle cx="${a.toFixed(1)}" cy="${y}" r="5.5" fill="${C.warn}"/>`
+      +`<circle cx="${b.toFixed(1)}" cy="${y}" r="5.5" fill="${C.ok}"/>`
+      +`<text x="${m.l-10}" y="${(+y+3.5).toFixed(1)}" text-anchor="end">${r.label}</text>`
+      +`<text x="${(b+9).toFixed(1)}" y="${(+y+3.5).toFixed(1)}" fill="${C.ok}">+${(r.b-r.a).toFixed(3)}</text>`});
+  if(opt.xl)s+=`<text class="lbl" x="${((w+m.l-m.r)/2).toFixed(1)}" y="${h-3}" text-anchor="middle">${opt.xl}</text>`;
+  el.innerHTML=s+'</svg>';
+}
+
+/* ---------------- measured results ----------------
+   Every number below is an actual output of the Kaggle pipeline, not an illustration.
+   Multi-species: 3 encoder seeds x 3 eval seeds. Sweeps + ladder: 2 eval seeds.
+   NOISE is the empirically measured run-to-run floor (same config, two sessions). */
+const NOISE=0.035;
+const R={
+  species:[
+    {k:'whbsho3',name:'White-bellied Sholakili',sci:'Sholicola albiventris',n:22,
+     decoy:0.575,stereo:0.268,s1:0.509,ver:0.641,f1s1:0.576,f1ver:0.629,fa1:97.0,fa2:8.0,
+     decoys:'blrwar1 · litgre1 · eaywag1 · eucdov'},
+    {k:'bcnher',name:'Black-crowned Night Heron',sci:'Nycticorax nycticorax',n:500,
+     decoy:0.453,stereo:0.462,s1:0.509,ver:0.781,f1s1:0.687,f1ver:0.756,fa1:57.8,fa2:4.7,
+     decoys:'litegr · purher1 · graher1 · greegr'},
+  ],
+  shots:{x:['1','3','5','10'],s1:[.464,.527,.488,.510],ver:[.592,.697,.721,.740],f1:[.661,.698,.712,.686]},
+  strat:[
+    {label:'Highest-rated 5',auc:.729,f1:.714,s1:.505},
+    {label:'Random 5',auc:.725,f1:.662,s1:.574},
+    {label:'Most diverse 5',auc:.708,f1:.558,s1:.511},
+    {label:'First 5 (DCASE)',auc:.612,f1:.659,s1:.485},
+  ],
+  ladder:[
+    {label:'Baseline · PCEN',auc:.731,f1:.713,fa:4.5,base:true},
+    {label:'+ hard negatives',auc:.684,f1:.643,fa:11.2},
+    {label:'+ TimeFilterAug',auc:.576,f1:.522,fa:13.1},
+    {label:'log-Mel front-end',auc:.583,f1:.483,fa:4.9},
+    {label:'log-Mel + hard neg.',auc:.573,f1:.472,fa:4.9},
+    {label:'log-Mel + TimeFilter',auc:.495,f1:.362,fa:14.6},
+  ],
+  effects:[
+    {label:'TimeFilterAug',v:.155,real:true},
+    {label:'log-Mel vs PCEN',v:.148,real:true},
+    {label:'Hard negatives',v:.047,real:true},
+    {label:'Prototypical probe',v:.005,real:false},
+  ],
+};
+let SP=0, MET='auc';
+
+function renderFinding(){
+  dumbbell($('#findChart'),R.species.map(s=>({label:s.k,a:s.s1,b:s.ver})),
+    {xl:'Species-discrimination AUC · threshold-free'});
+  legend($('#findLgd'),[{name:'Stage 1 alone',color:C.warn},{name:'After verification',color:C.ok}]);
+}
+
+function renderGeneral(){
+  $('#spSeg').innerHTML=R.species.map((s,i)=>
+    `<button class="${i===SP?'on':''}" data-i="${i}">${s.name}</button>`).join('');
+  $$('#spSeg button').forEach(b=>b.onclick=()=>{SP=+b.dataset.i;renderGeneral()});
+  dumbbell($('#genChart'),R.species.map(s=>({label:s.k,a:s.s1,b:s.ver})),
+    {xl:'Species AUC'});
+  legend($('#genLgd'),[{name:'Stage 1 alone',color:C.warn},{name:'Verified',color:C.ok}]);
+  const s=R.species[SP];
+  $('#spDetail').innerHTML=`<div class="label" style="margin-bottom:9px">${s.name}</div>
+    <p class="note" style="margin:0 0 12px;font-size:12.5px"><i>${s.sci}</i></p>
+    <div class="spstat"><span>Recordings available</span><b class="mono">${s.n}</b></div>
+    <div class="spstat"><span>Species AUC · stage 1</span><b class="mono" style="color:var(--warn)">${s.s1.toFixed(3)}</b></div>
+    <div class="spstat"><span>Species AUC · verified</span><b class="mono" style="color:var(--ok)">${s.ver.toFixed(3)}</b></div>
+    <div class="spstat"><span>Gain</span><b class="mono" style="color:var(--acc)">+${(s.ver-s.s1).toFixed(3)}</b></div>
+    <div class="spstat"><span>Event F1 · verified</span><b class="mono">${s.f1ver.toFixed(3)}</b></div>
+    <div class="spstat"><span>False alarms / hr</span><b class="mono">${s.fa1.toFixed(1)} → ${s.fa2.toFixed(1)}</b></div>
+    <div class="spstat"><span>Closest decoy similarity</span><b class="mono">${s.decoy.toFixed(3)}</b></div>
+    <div class="spstat"><span>Call stereotypy</span><b class="mono">${s.stereo.toFixed(3)}</b></div>
+    <p class="note" style="margin-top:12px;font-size:12px">Decoys: <span class="mono">${s.decoys}</span></p>`;
+}
+
+function renderConfig(){
+  const mets=[['auc','Species AUC'],['f1','Event F1'],['fa','False alarms / hr']];
+  $('#metSeg').innerHTML=mets.map(([k,l])=>
+    `<button class="${k===MET?'on':''}" data-k="${k}">${l}</button>`).join('');
+  $$('#metSeg button').forEach(b=>b.onclick=()=>{MET=b.dataset.k;renderConfig()});
+  const lower=MET==='fa';
+
+  // shot count
+  if(MET==='fa'){
+    $('#shotChart').innerHTML='<p class="note" style="padding:26px 0">False-alarm rate was '
+      +'not recorded per shot count — it is measured in the multi-species run instead.</p>';
+    $('#shotLgd').innerHTML='';
+  }else if(MET==='auc'){
+    lineChart($('#shotChart'),[{vals:R.shots.ver,color:C.ok},{vals:R.shots.s1,color:C.warn}],
+      R.shots.x,'Number of labelled examples','Species AUC');
+    legend($('#shotLgd'),[{name:'Verified',color:C.ok},{name:'Stage 1 alone',color:C.warn}]);
+  }else{
+    lineChart($('#shotChart'),[{vals:R.shots.f1,color:C.acc}],R.shots.x,
+      'Number of labelled examples','Event F1');
+    legend($('#shotLgd'),[{name:'Event F1 · verified',color:C.acc}]);
+  }
+
+  // shot strategy
+  const skey=MET==='fa'?'auc':MET;
+  barChart($('#stratChart'),R.strat.map(s=>({label:s.label,value:s[skey],
+      color:s.label.startsWith('Highest')?C.ok:C.acc,strong:s.label.startsWith('Highest')})),
+    {x0:.4,x1:.82,xl:MET==='f1'?'Event F1':'Species AUC'+(MET==='fa'?' (FA not measured here)':'')});
+
+  // ablation ladder
+  const base=R.ladder[0];
+  barChart($('#ladChart'),R.ladder.map(r=>{
+      const v=r[MET];
+      const inNoise=MET==='auc'&&!r.base&&Math.abs(v-base.auc)<NOISE;
+      return{label:r.label,value:v,strong:!!r.base,
+        color:r.base?C.acc:inNoise?C.dim:(lower?(v<base.fa?C.ok:C.bad):(v>base[MET]?C.ok:C.bad))}}),
+    {x0:0,x1:lower?16:.82,ref:base[MET],
+     band:MET==='auc'?[base.auc-NOISE,base.auc+NOISE]:null,
+     fmt:lower?(v=>v.toFixed(1)):(v=>v.toFixed(3)),
+     xl:lower?'False alarms per hour · lower is better':(MET==='f1'?'Event F1':'Species AUC · dashed line = baseline, grey band = noise floor')});
+}
+
+function renderNoise(){
+  barChart($('#noiseChart'),R.effects.map(e=>({label:e.label,value:e.v,
+      color:e.real?C.bad:C.dim,strong:false})),
+    {x0:0,x1:.18,band:[0,NOISE],l:178,
+     xl:'Absolute effect on species AUC · grey band = noise floor (0.035)'});
+}
 
 /* ---------------- connection ---------------- */
 async function connect(){
@@ -805,7 +1133,7 @@ $('#upReset').onclick=()=>{if(UPRES){UPTHR=UPRES.thresholds[FUS];syncUpThr();ren
 const ABL=[
  [1,'Google Perch as the detector itself','clip-level, blind to faint calls','rejected'],
  [2,'Fine-tune positives down to −15 dB','−0.06 AP','rejected'],
- [3,'Hard-negative mining','+0.001 AP','no real gain'],
+ [3,'Hard-negative mining (first attempt)','+0.001 AP','no real gain'],
  [4,'Two peaks per file in the eval pool','−0.069 AP','rejected'],
  [5,'2.5 s analysis window','−0.103 AP','rejected'],
  [6,'Candidate floor 0.40 → 0.10','+0.125 AP','adopted'],
@@ -815,12 +1143,26 @@ const ABL=[
  [10,'Specificity control (the diagnostic)','decoys ≥ target','finding'],
  [11,'Other-species calls as negatives','ratio 1.08 → 1.54','made it worse'],
  [12,'Frozen encoder, no adaptation','still unspecific','rules out fine-tuning'],
- [13,'Two-stage verification (Perch)','FA/hit 0.6 → 0.2','adopted'],
+ [13,'Two-stage verification (Perch)','AUC 0.509 → 0.711','adopted'],
+ [14,'Perch v1 → v2 embeddings (1280 → 1536-d)','re-drew the decoy set entirely','adopted'],
+ [15,'Input peak-normalisation (was missing)','changed real embeddings by 0.065','bug fixed'],
+ [16,'Support recordings leaking into held-out pool','silent under rated-shot selection','bug fixed'],
+ [17,'Encoder trained on other target species','would have inflated every score','bug fixed'],
+ [18,'TimeFilterAug (DCASE 2023 winner)','−0.155 AUC, both front-ends','did not transfer'],
+ [19,'log-Mel front-end (DCASE 2024 winner)','−0.148 AUC vs PCEN','contradicts literature'],
+ [20,'Hard negatives (isolated re-test)','−0.047 AUC, FA/hr 4.5 → 11.2','rejected'],
+ [21,'Prototypical probe','−0.005 — inside noise floor','no evidence either way'],
+ [22,'Run-to-run noise floor measurement','0.035 AUC','finding'],
 ];
 $('#ablTbl').innerHTML=ABL.map(([n,m,e,v])=>{
-  const cls=v==='adopted'?'ok':v==='finding'?'warn':'dim';
+  const cls=v==='adopted'?'ok':(v==='finding'||v==='bug fixed')?'warn':
+            (v==='contradicts literature'||v==='did not transfer')?'bad':'dim';
   return `<tr><td style="color:var(--dim2)">${String(n).padStart(2,'0')}</td><td>${m}</td>
    <td style="color:var(--dim)">${e}</td><td><span class="tag ${cls}">${v}</span></td></tr>`}).join('');
+
+/* Static result sections render immediately -- they are measured numbers baked into the
+   page, so they must not depend on a live engine connection the way section 01 does. */
+renderFinding(); renderGeneral(); renderConfig(); renderNoise();
 
 /* ---------------- wiring ---------------- */
 /* ---------------- live microphone capture ----------------
