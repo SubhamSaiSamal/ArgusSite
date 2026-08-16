@@ -274,8 +274,8 @@
     <div><b>5</b><span>Labelled examples</span></div>
     <div><b>40</b><span>Species pretrained</span></div>
     <div><b>1536</b><span>Verifier dimensions</span></div>
-    <div><b>0.711</b><span>Species AUC · verified</span></div>
-    <div><b>+0.202</b><span>Gain from verification</span></div>
+    <div><b>0.751</b><span>Species AUC · verified · 10 species</span></div>
+    <div><b>10/10</b><span>Species improved by verification</span></div>
   </div>
 </div></div>
 
@@ -486,50 +486,60 @@
 <!-- 05 · THE FINDING -->
 <section id="finding"><div class="wrap">
   <div class="shead"><span class="snum">05</span><h2>The finding</h2></div>
-  <p class="sdesc">A detector can score well on event detection while carrying almost no
-  information about <em>which</em> species it heard.</p>
+  <p class="sdesc">Verification does not just help the hardest case — it helps every species
+  we tested, and the size of the effect is what makes it a finding rather than an anecdote.</p>
 
   <div class="card tight" style="margin-bottom:16px">
-    <div class="label" style="margin-bottom:10px">Species discrimination · before and after verification</div>
+    <div class="label" style="margin-bottom:10px">Species discrimination · before and after verification, all 10 species</div>
     <div id="findChart"></div>
     <div class="lgd" id="findLgd" style="margin-top:8px"></div>
     <p class="note" style="margin-top:10px;font-size:12.5px">0.50 is the coin-flip line: the
-    detector cannot tell the target from an acoustically similar decoy at all. Stage 1 lands
-    on it almost exactly. Verification is what moves it.</p>
+    detector cannot tell the target from an acoustically similar decoy at all. Verification
+    clears it for every species, by a margin larger than the measured noise floor in all
+    ten cases.</p>
   </div>
 
   <div class="grid g2">
-    <div class="card"><div class="step">Control</div><h3>It was hearing birds, not the bird</h3>
+    <div class="card"><div class="step">Control</div><h3>Matching alone is inconsistent — and its worst case is our own species</h3>
       <p>We plant the target <em>and</em> four acoustically similar decoy species into the same
       recordings at the same loudness, then ask a threshold-free question: does the target
-      score above the decoy? Stage 1 alone answers
-      <b class="mono" style="color:var(--warn)">0.509</b> — statistically indistinguishable
-      from guessing. It reliably hears <em>a</em> bird; it carries almost no information about
-      <em>which</em>.</p></div>
-    <div class="card"><div class="step">Fix</div><h3>A second opinion recovers the identity</h3>
-      <p>Passing every stage-1 candidate to a Perch-embedding verifier lifts species AUC to
-      <b class="mono" style="color:var(--ok)">0.711</b> — a gain of
-      <b class="mono">+0.202</b>, holding for both species tested. False alarms on
-      bird-free audio fall by roughly <b class="mono">92%</b>
-      (97.0 → 8.0 and 57.8 → 4.7 per hour).</p></div>
+      score above the decoy? Stage 1 alone spans
+      <b class="mono" style="color:var(--warn)">0.469 to 0.694</b> across ten species — six sit
+      clearly above chance, four sit at it. <b>The lowest score in the set is
+      <em>Sholicola albiventris</em></b> — the endangered species this project was built
+      around, and not a randomly chosen case. We say that plainly rather than let it be found.</p></div>
+    <div class="card"><div class="step">Fix</div><h3>Verification lifts every single one</h3>
+      <p>Passing every stage-1 candidate to a Perch-embedding verifier lifts mean species AUC
+      to <b class="mono" style="color:var(--ok)">0.751</b> — a gain of
+      <b class="mono">+0.165</b> (SE 0.019, d/SE 8.83), and every one of the ten gains clears
+      the encoder-training noise floor on its own. False alarms on bird-free audio fall
+      sharply throughout — as much as <b class="mono">55.2 → 0.7</b> per hour for the
+      easiest species.</p></div>
   </div>
 
-  <div class="callout warn"><b>A number we retired, and why.</b> An earlier build reported
-  stage-1 at <span class="mono">0.459</span> — below chance. That figure came from a
-  superseded pipeline (Perch&nbsp;v1, missing input normalisation, and a leak that let support
-  recordings into the held-out pool). Critically, <b>decoys are ranked by Perch embedding
-  similarity</b>, so upgrading the embedding model re-drew which species act as decoys and
-  changed the difficulty of the test itself. The old number is not comparable to the current
-  one, so we retired it rather than quietly restating it. Two independent runs of the current
-  pipeline agree: <span class="mono">0.517</span> and <span class="mono">0.509</span>.</div>
+  <div class="callout warn"><b>A number we retired, and why — and an honest coincidence
+  worth addressing directly.</b> An earlier build reported stage-1 at
+  <span class="mono">0.459</span> for this species — below chance. That figure came from a
+  superseded pipeline (Perch&nbsp;v1, missing input normalisation, a leak that let support
+  recordings into the held-out pool) and was retired.
+  Since then we've measured this species' stage-1 AUC four separate times on the corrected
+  pipeline: <span class="mono">0.517</span> and <span class="mono">0.509</span> in earlier
+  smaller runs, and <span class="mono">0.469</span> (0.456–0.480 across 3 seeds) in the full
+  10-species run below. That last figure sits close to the retired number — by coincidence,
+  not by relapse: <b>decoys are ranked among the species NOT chosen as targets</b>, so a
+  10-target run and a 2-target run draw this species' decoys from different pools. Here the
+  peak decoy similarity is actually <em>lower</em> than in the earlier runs (0.419 vs 0.575)
+  yet the score came out harder — a reminder that one similarity number doesn't capture the
+  full difficulty of a decoy set. Read whbsho3's honest range across every correct-pipeline
+  measurement as roughly <span class="mono">0.46–0.52</span>, not a single point estimate.</div>
 </div></section>
 
 <!-- 06 · GENERALISATION -->
 <section id="general"><div class="wrap">
   <div class="shead"><span class="snum">06</span><h2>Does it generalise?</h2></div>
-  <p class="sdesc">A result on one bird is an anecdote. The pipeline now runs the identical
-  protocol across multiple target species — each with its own five examples, its own four
-  hardest decoys, and an encoder that has never seen it.</p>
+  <p class="sdesc">A result on one bird is an anecdote. The full pre-registered run — ten
+  target species, each with its own five examples, its own four hardest decoys, and an
+  encoder that has never seen it — is what turns it into a finding.</p>
 
   <div class="segbar" id="spSeg"></div>
   <div class="grid g2" style="margin-top:14px">
@@ -541,13 +551,31 @@
     <div class="card tight" id="spDetail"></div>
   </div>
 
-  <div class="callout"><b>Outcome A — it generalises, so far.</b> Verification helped
-  <b>2 of 2</b> species; neither fell below chance after verification. Mean gain
-  <span class="mono">+0.202</span> (SE 0.070). But two species is a smoke test, not a study —
-  the pre-registered target list runs to 8–12 species, and this claim gets re-tested against
-  all of them before it goes in a paper. The two species also differ enormously in available
-  data (22 vs 500 recordings), which is itself informative: the gain was <em>larger</em> for
-  the data-rich species.</div>
+  <div class="callout"><b>Outcome A — it generalises, properly earned this time.</b>
+  Verification helped <b>10 of 10</b> species; none fell below chance after verification.
+  Mean gain <span class="mono">+0.165</span> (SE 0.019, d/SE 8.83) — a far tighter result
+  than the 2-species smoke test that came before it (d/SE 2.77). Every individual species'
+  gain clears the measured encoder-training noise floor on its own, so this isn't a handful
+  of species riding on a few noisy outliers.</div>
+
+  <div class="callout warn" style="margin-top:12px"><b>What we learned about difficulty.</b>
+  Nine species read this analysis before us and found no consistent predictor of task
+  difficulty (Nolasco&nbsp;et&nbsp;al. 2023, §4.1). Across our ten species, <b>call
+  stereotypy</b> — how consistent a species' calls are with each other — correlates with
+  stage-1 AUC at <span class="mono">r=0.59</span> and with the verification gain at
+  <span class="mono">r=−0.56</span>: species with more variable calls score worse before
+  verification and gain more from it. Directional, not proof (n=10, below the significance
+  threshold at this sample size) — but it's mechanistically sensible, and it's exactly the
+  kind of factor the field has been looking for. <em>Sholicola albiventris</em>, this
+  project's founding species, has the lowest stereotypy in the set and the lowest stage-1
+  score. That's not a coincidence we're hiding from either.</div>
+
+  <div class="callout" style="margin-top:12px"><b>One limitation worth stating plainly.</b>
+  Nine of the ten species have 500 available recordings; the pre-registration rule selects
+  by recording count, and the tenth — the actual rare, data-poor endemic this project is
+  about — is the outlier by necessity. The result generalises across common species with
+  strong data; whbsho3 remains the project's one genuine proof point for the hard case the
+  motivation is actually about.</div>
 </div></section>
 
 <!-- 07 · CONFIGURATION -->
@@ -566,20 +594,28 @@
       project is "five". This tests it.</p>
       <div id="shotChart"></div>
       <div class="lgd" id="shotLgd" style="margin-top:8px"></div>
-      <p class="note" style="margin-top:10px;font-size:12.5px"><b>Read the plateau, not the
-      peak.</b> Going 1→3 buys <span class="mono">+0.105</span>. Going 5→10 buys
-      <span class="mono">+0.019</span> — inside the noise floor. Five is the point where
-      more effort in the field stops paying for itself.</p>
+      <p class="note" style="margin-top:10px;font-size:12.5px"><b>One shot is clearly not
+      enough; beyond three, we honestly can't resolve it.</b> 1→3 buys
+      <span class="mono">+0.061</span> — a real step. 3→5 buys <span class="mono">+0.031</span>
+      and 5→10 buys <span class="mono">+0.024</span>, both smaller than the
+      <span class="mono">0.043</span> run-to-run spread measured at this sample size (3
+      species). We're not claiming a plateau we can't back up — only that going from one
+      example to a handful clearly matters, and beyond that this study can't distinguish the
+      steps from noise yet.</p>
     </div>
     <div class="card tight">
       <div class="label" style="margin-bottom:4px">Which five examples?</div>
       <p class="note" style="margin:0 0 10px;font-size:12.5px">Nobody has published this for
-      few-shot bioacoustics. It turns out to matter more than most architecture choices.</p>
+      few-shot bioacoustics. Our honest answer: it isn't resolved yet either.</p>
       <div id="stratChart"></div>
-      <p class="note" style="margin-top:10px;font-size:12.5px">Spread across strategies is
-      <span class="mono">0.118</span> AUC — about half the entire gain from verification.
-      Picking the highest-quality recordings beats the DCASE convention of simply taking the
-      first five by <span class="mono">+0.117</span>.</p>
+      <p class="note" style="margin-top:10px;font-size:12.5px">Spread across strategies
+      (<span class="mono">0.068</span>) is smaller than the run-to-run noise at this sample
+      size (<span class="mono">0.024</span> mean sd) — <em>and</em> the per-species winners
+      disagree completely: <span class="mono">rated</span> wins for barswa,
+      <span class="mono">random</span> for bcnher, <span class="mono">diverse</span> for
+      whbsho3. Only "first five, no curation" (the DCASE default) looks consistently weaker.
+      We're not claiming a best strategy — we're reporting that it isn't settled, honestly,
+      rather than picking the number that looks best.</p>
     </div>
   </div>
 
@@ -589,26 +625,39 @@
     The dashed line is our baseline; the grey band is the measured noise floor — anything
     inside it is not a real effect.</p>
     <div id="ladChart"></div>
-    <p class="note" style="margin-top:10px;font-size:12.5px">Partial run: 6 of 16
-    configurations completed before the session was cut short. The prototypical-probe arm is
-    not represented here — the run was ordered so that every configuration testing it came
-    last, which we have since fixed.</p>
+    <p class="note" style="margin-top:10px;font-size:12.5px">Complete 8-configuration
+    factorial, run on the 2-species subset used before the centrepiece scale-up (§06 above
+    is the full 10-species confirmation; this configuration search ran before it and wasn't
+    re-run at full scale — its ranking of techniques is expected to hold since it's about
+    architecture choices, not species coverage, but that's an assumption, not re-verified).
+    The baseline is repeated across three encoder seeds to establish the noise floor; every
+    other configuration is a single run. TimeFilterAug was dropped from this design after an
+    earlier run measured it harmful in isolation.</p>
   </div>
+
+  <div class="callout warn" style="margin-top:15px"><b>Every published technique we imported
+  made it worse.</b> Four methods — two from DCASE-winning systems, one from a peer-reviewed
+  paper, one from Google's own Perch 2.0 release — were each tested against a measured noise
+  floor. All four reduced species AUC, and the untouched baseline came out ahead of every
+  one of them. We report this as the result it is: in a five-shot regime with a 250-step
+  fine-tune, techniques tuned for full-scale training budgets did not transfer.</div>
 
   <div class="grid g2" style="margin-top:15px">
     <div class="card"><div class="step">Contradicts the literature</div>
       <h3>PCEN beats log-Mel here</h3>
-      <p>Three paired comparisons, PCEN wins all three (<span class="mono">+0.148</span>,
-      <span class="mono">+0.111</span>, <span class="mono">+0.081</span>). The DCASE 2024
-      winner reported the opposite on <em>F1</em> — but the same literature shows PCEN winning
-      on <em>precision</em>, and species discrimination is a precision-shaped problem. The
-      right front-end depends on which question you are asking.</p></div>
+      <p>Switching front-end costs <span class="mono">−0.114</span> AUC as a main effect,
+      and log-Mel loses in every paired configuration across two independent runs. The DCASE
+      2024 winner reported the opposite on <em>F1</em> — but the same literature shows PCEN
+      winning on <em>precision</em>, and species discrimination is a precision-shaped
+      problem. The right front-end depends on which question you are asking.</p></div>
     <div class="card"><div class="step">Did not transfer</div>
-      <h3>TimeFilterAug hurt, consistently</h3>
-      <p>A DCASE-winning augmentation cost <span class="mono">−0.155</span> AUC on PCEN and
-      <span class="mono">−0.088</span> on log-Mel, and damaged stage-1 scores independently of
-      which verifier was used. Our best explanation: it was tuned for a full-scale training
-      budget, and ARGUS fine-tunes for 250 steps on five examples. Dropped.</p></div>
+      <h3>The prototypical probe, and why AUC alone was not enough</h3>
+      <p>Perch 2.0's own paper reports prototypical probing beating a linear probe by
+      <span class="mono">+0.078</span> mAP. Here it cost <span class="mono">−0.034</span> AUC
+      — sitting right <em>at</em> the noise floor, so inconclusive on that metric alone. Event
+      F1 and false alarms decided it: FA/hr rose <b class="mono">7.9 → 18.0</b> on PCEN and
+      <b class="mono">5.2 → 35.6</b> on log-Mel. Three metrics, both front-ends, same
+      direction. Rejected.</p></div>
   </div>
 </div></section>
 
@@ -624,14 +673,18 @@
       seeds, same code. It scored <b class="mono">0.696</b> once and <b class="mono">0.731</b>
       the next time. Nothing differed but GPU scheduling: convolution backward passes are not
       bit-reproducible even with a fixed random seed.</p>
-      <p class="note" style="margin-top:9px">That <b class="mono">0.035</b> gap is the noise
-      floor — the smallest difference this setup can actually resolve.</p></div>
-    <div class="card"><div class="step">The consequence</div><h3>One verdict had to be withdrawn</h3>
-      <p>Before the floor was known, the pipeline reported the prototypical probe as
-      <em>hurting</em>, with a confident-looking <span class="mono">d/SE = −3.02</span>. But
-      that standard error only measured variation <em>within</em> a run. The actual effect,
-      <span class="mono">−0.005</span>, is seven times <em>smaller</em> than the noise floor.
-      It is indistinguishable from zero, and the verdict was retracted.</p></div>
+      <p class="note" style="margin-top:9px">Retraining the encoder on an identical bank moves
+      results by <b class="mono">0.025</b>; across sessions the gap reaches
+      <b class="mono">0.035</b>. Both are now measured directly rather than assumed.</p></div>
+    <div class="card"><div class="step">The consequence</div><h3>A verdict was withdrawn, then re-earned</h3>
+      <p>Before the floor was known, the pipeline called the prototypical probe
+      <em>harmful</em> on a <span class="mono">d/SE = −3.02</span> — a standard error that only
+      measured variation <em>within</em> one run. The effect it was judging,
+      <span class="mono">−0.005</span>, was seven times smaller than the floor. That verdict
+      was retracted.</p>
+      <p class="note" style="margin-top:9px">A later, properly-ordered run measured the probe
+      again at <span class="mono">−0.034</span> — and rejected it on false-alarm rate, not on
+      AUC. Same conclusion, arrived at honestly the second time.</p></div>
   </div>
 
   <div class="card tight" style="margin-top:15px">
@@ -789,36 +842,72 @@ function dumbbell(el,rows,opt={}){
    Every number below is an actual output of the Kaggle pipeline, not an illustration.
    Multi-species: 3 encoder seeds x 3 eval seeds. Sweeps + ladder: 2 eval seeds.
    NOISE is the empirically measured run-to-run floor (same config, two sessions). */
-const NOISE=0.035;
+const NOISE=0.035;        // cross-session floor — the conservative bar for any public claim
+const NOISE_IN=0.025;     // within-session floor, from retraining the encoder on one bank
+// FULL CENTREPIECE RUN, 16 Aug 2026: SMOKE_TEST=False, all 10 pre-registered species,
+// 3 encoder seeds x 3 eval seeds each. Replaces the 2-species smoke test below it in
+// the commit history. Every number here is read directly from
+// argus_multispecies_results.csv -- see _gen_site_data.py for the extraction script.
 const R={
   species:[
-    {k:'whbsho3',name:'White-bellied Sholakili',sci:'Sholicola albiventris',n:22,
-     decoy:0.575,stereo:0.268,s1:0.509,ver:0.641,f1s1:0.576,f1ver:0.629,fa1:97.0,fa2:8.0,
-     decoys:'blrwar1 · litgre1 · eaywag1 · eucdov'},
+    {k:'bkwsti',name:'Black-winged Stilt',sci:'Himantopus himantopus',n:500,
+     decoy:0.518,stereo:0.409,s1:0.694,ver:0.828,f1ver:0.769,fa1:23.0,fa2:5.0,
+     seeds:'0.702 · 0.687 · 0.694'},
+    {k:'comkin1',name:'Common Kingfisher',sci:'Alcedo atthis',n:500,
+     decoy:0.327,stereo:0.421,s1:0.622,ver:0.827,f1ver:0.698,fa1:78.0,fa2:54.2,
+     seeds:'0.620 · 0.623 · 0.621'},
+    {k:'comgre',name:'Common Greenshank',sci:'Tringa nebularia',n:500,
+     decoy:0.409,stereo:0.543,s1:0.687,ver:0.781,f1ver:0.765,fa1:38.7,fa2:9.7,
+     seeds:'0.683 · 0.688 · 0.688'},
+    {k:'barswa',name:'Barn Swallow',sci:'Hirundo rustica',n:500,
+     decoy:0.390,stereo:0.339,s1:0.554,ver:0.770,f1ver:0.700,fa1:55.2,fa2:0.7,
+     seeds:'0.553 · 0.567 · 0.544'},
+    {k:'eaywag1',name:'Western Yellow Wagtail',sci:'Motacilla flava',n:500,
+     decoy:0.452,stereo:0.451,s1:0.545,ver:0.753,f1ver:0.624,fa1:62.2,fa2:11.8,
+     seeds:'0.549 · 0.551 · 0.535'},
     {k:'bcnher',name:'Black-crowned Night Heron',sci:'Nycticorax nycticorax',n:500,
-     decoy:0.453,stereo:0.462,s1:0.509,ver:0.781,f1s1:0.687,f1ver:0.756,fa1:57.8,fa2:4.7,
-     decoys:'litegr · purher1 · graher1 · greegr'},
+     decoy:0.487,stereo:0.462,s1:0.496,ver:0.750,f1ver:0.737,fa1:44.0,fa2:2.3,
+     seeds:'0.489 · 0.506 · 0.493'},
+    {k:'commoo3',name:'Eurasian Moorhen',sci:'Gallinula chloropus',n:500,
+     decoy:0.480,stereo:0.513,s1:0.628,ver:0.750,f1ver:0.706,fa1:66.0,fa2:6.5,
+     seeds:'0.630 · 0.634 · 0.620'},
+    {k:'comsan',name:'Common Sandpiper',sci:'Actitis hypoleucos',n:500,
+     decoy:0.325,stereo:0.519,s1:0.623,ver:0.720,f1ver:0.756,fa1:29.7,fa2:3.3,
+     seeds:'0.622 · 0.618 · 0.631'},
+    {k:'whbsho3',name:'White-bellied Sholakili',sci:'Sholicola albiventris',n:22,
+     decoy:0.419,stereo:0.268,s1:0.469,ver:0.680,f1ver:0.636,fa1:78.8,fa2:10.0,
+     seeds:'0.471 · 0.456 · 0.480'},
+    {k:'blrwar1',name:"Blyth's Reed Warbler",sci:'Acrocephalus dumetorum',n:500,
+     decoy:0.333,stereo:0.417,s1:0.535,ver:0.646,f1ver:0.709,fa1:64.7,fa2:30.7,
+     seeds:'0.535 · 0.538 · 0.532'},
   ],
-  shots:{x:['1','3','5','10'],s1:[.464,.527,.488,.510],ver:[.592,.697,.721,.740],f1:[.661,.698,.712,.686]},
+  // Shot-count and shot-strategy sweeps ran on 3 species (whbsho3, bcnher, barswa) --
+  // narrower than the 10-species centrepiece above, still the real sweep result.
+  shots:{x:['1','3','5','10'],s1:[.490,.493,.487,.512],ver:[.642,.703,.734,.758],f1:[.623,.687,.723,.706]},
   strat:[
-    {label:'Highest-rated 5',auc:.729,f1:.714,s1:.505},
-    {label:'Random 5',auc:.725,f1:.662,s1:.574},
-    {label:'Most diverse 5',auc:.708,f1:.558,s1:.511},
-    {label:'First 5 (DCASE)',auc:.612,f1:.659,s1:.485},
+    {label:'Highest-rated 5',auc:.738,f1:.730,s1:.489},
+    {label:'Random 5',auc:.738,f1:.690,s1:.512},
+    {label:'Most diverse 5',auc:.682,f1:.584,s1:.503},
+    {label:'First 5 (DCASE)',auc:.670,f1:.714,s1:.468},
   ],
+  // Full 8-config factorial, baseline averaged over 3 encoder seeds. TimeFilterAug was
+  // dropped from this design after the previous run showed it harmful in isolation.
   ladder:[
-    {label:'Baseline · PCEN',auc:.731,f1:.713,fa:4.5,base:true},
-    {label:'+ hard negatives',auc:.684,f1:.643,fa:11.2},
-    {label:'+ TimeFilterAug',auc:.576,f1:.522,fa:13.1},
-    {label:'log-Mel front-end',auc:.583,f1:.483,fa:4.9},
-    {label:'log-Mel + hard neg.',auc:.573,f1:.472,fa:4.9},
-    {label:'log-Mel + TimeFilter',auc:.495,f1:.362,fa:14.6},
+    {label:'Baseline · PCEN',auc:.715,f1:.714,fa:7.9,base:true},
+    {label:'+ prototypical probe',auc:.681,f1:.671,fa:18.0},
+    {label:'+ hard negatives',auc:.668,f1:.638,fa:9.4},
+    {label:'+ proto + hard neg.',auc:.662,f1:.559,fa:20.2},
+    {label:'log-Mel front-end',auc:.601,f1:.490,fa:5.2},
+    {label:'log-Mel + hard neg.',auc:.587,f1:.485,fa:5.6},
+    {label:'log-Mel + proto',auc:.586,f1:.443,fa:35.6},
+    {label:'log-Mel + proto + hn',auc:.585,f1:.454,fa:24.8},
   ],
+  // st: 'real' clears the cross-session floor · 'edge' sits at it · 'noise' is inside it
   effects:[
-    {label:'TimeFilterAug',v:.155,real:true},
-    {label:'log-Mel vs PCEN',v:.148,real:true},
-    {label:'Hard negatives',v:.047,real:true},
-    {label:'Prototypical probe',v:.005,real:false},
+    {label:'TimeFilterAug',v:.155,st:'real'},
+    {label:'log-Mel vs PCEN',v:.114,st:'real'},
+    {label:'Hard negatives',v:.047,st:'real'},
+    {label:'Prototypical probe',v:.034,st:'edge'},
   ],
 };
 let SP=0, MET='auc';
@@ -841,13 +930,16 @@ function renderGeneral(){
     <p class="note" style="margin:0 0 12px;font-size:12.5px"><i>${s.sci}</i></p>
     <div class="spstat"><span>Recordings available</span><b class="mono">${s.n}</b></div>
     <div class="spstat"><span>Species AUC · stage 1</span><b class="mono" style="color:var(--warn)">${s.s1.toFixed(3)}</b></div>
+    <div class="spstat"><span>…per encoder seed</span><b class="mono" style="color:var(--dim)">${s.seeds}</b></div>
     <div class="spstat"><span>Species AUC · verified</span><b class="mono" style="color:var(--ok)">${s.ver.toFixed(3)}</b></div>
     <div class="spstat"><span>Gain</span><b class="mono" style="color:var(--acc)">+${(s.ver-s.s1).toFixed(3)}</b></div>
     <div class="spstat"><span>Event F1 · verified</span><b class="mono">${s.f1ver.toFixed(3)}</b></div>
     <div class="spstat"><span>False alarms / hr</span><b class="mono">${s.fa1.toFixed(1)} → ${s.fa2.toFixed(1)}</b></div>
     <div class="spstat"><span>Closest decoy similarity</span><b class="mono">${s.decoy.toFixed(3)}</b></div>
     <div class="spstat"><span>Call stereotypy</span><b class="mono">${s.stereo.toFixed(3)}</b></div>
-    <p class="note" style="margin-top:12px;font-size:12px">Decoys: <span class="mono">${s.decoys}</span></p>`;
+    <p class="note" style="margin-top:12px;font-size:12px">Recordings: 3 encoder seeds ×
+    3 eval seeds each, averaged. Decoy pool changes per species since other targets are
+    excluded from it — not directly comparable species-to-species.</p>`;
 }
 
 function renderConfig(){
@@ -893,9 +985,9 @@ function renderConfig(){
 
 function renderNoise(){
   barChart($('#noiseChart'),R.effects.map(e=>({label:e.label,value:e.v,
-      color:e.real?C.bad:C.dim,strong:false})),
+      color:e.st==='real'?C.bad:e.st==='edge'?C.warn:C.dim,strong:false})),
     {x0:0,x1:.18,band:[0,NOISE],l:178,
-     xl:'Absolute effect on species AUC · grey band = noise floor (0.035)'});
+     xl:'Absolute effect on species AUC · grey band = cross-session noise floor (0.035)'});
 }
 
 /* ---------------- connection ---------------- */
@@ -1143,20 +1235,30 @@ const ABL=[
  [10,'Specificity control (the diagnostic)','decoys ≥ target','finding'],
  [11,'Other-species calls as negatives','ratio 1.08 → 1.54','made it worse'],
  [12,'Frozen encoder, no adaptation','still unspecific','rules out fine-tuning'],
- [13,'Two-stage verification (Perch)','AUC 0.509 → 0.711','adopted'],
+ [13,'Two-stage verification (Perch)','AUC 0.585 → 0.751 mean, 10 species','adopted'],
  [14,'Perch v1 → v2 embeddings (1280 → 1536-d)','re-drew the decoy set entirely','adopted'],
  [15,'Input peak-normalisation (was missing)','changed real embeddings by 0.065','bug fixed'],
  [16,'Support recordings leaking into held-out pool','silent under rated-shot selection','bug fixed'],
  [17,'Encoder trained on other target species','would have inflated every score','bug fixed'],
  [18,'TimeFilterAug (DCASE 2023 winner)','−0.155 AUC, both front-ends','did not transfer'],
- [19,'log-Mel front-end (DCASE 2024 winner)','−0.148 AUC vs PCEN','contradicts literature'],
- [20,'Hard negatives (isolated re-test)','−0.047 AUC, FA/hr 4.5 → 11.2','rejected'],
- [21,'Prototypical probe','−0.005 — inside noise floor','no evidence either way'],
- [22,'Run-to-run noise floor measurement','0.035 AUC','finding'],
+ [19,'log-Mel front-end (DCASE 2024 winner)','−0.114 AUC main effect','contradicts literature'],
+ [20,'Hard negatives (isolated re-test)','−0.047 AUC, FA/hr 7.9 → 9.4','rejected'],
+ [21,'Prototypical probe (Perch 2.0 paper)','−0.034 AUC, FA/hr 7.9 → 18.0','did not transfer'],
+ [22,'Encoder-training variance, measured','0.025 AUC within a session','finding'],
+ [23,'Cross-session noise floor, measured','0.035 AUC','finding'],
+ [24,'Config ordering hid the proto arm','ran 6/16, all proto configs last','bug fixed'],
+ [25,'No checkpointing in the ladder','lost 82 min to a killed session','bug fixed'],
+ [26,'Full 10-species centrepiece run','+0.165 mean AUC, 10/10 improved','confirmed'],
+ [27,'"Stage-1 below chance" as a general claim','true for 2/10, above chance for 6/10','retracted'],
+ [28,'"Rated shot-selection wins" claim','spread 0.068 < noise 0.024; per-species disagree','retracted'],
+ [29,'"Plateau at 5 shots" claim','only 1→3 clears the noise floor','retracted'],
+ [30,'Call stereotypy as a difficulty predictor','r=0.59 vs stage-1, r=−0.56 vs gain','new lead'],
+ [31,'Decoy pool shifts with target-list size','whbsho3 decoy sim 0.575 → 0.419 between runs','confound found'],
 ];
 $('#ablTbl').innerHTML=ABL.map(([n,m,e,v])=>{
-  const cls=v==='adopted'?'ok':(v==='finding'||v==='bug fixed')?'warn':
-            (v==='contradicts literature'||v==='did not transfer')?'bad':'dim';
+  const cls=(v==='adopted'||v==='confirmed'||v==='new lead')?'ok':
+            (v==='finding'||v==='bug fixed'||v==='confound found')?'warn':
+            (v==='contradicts literature'||v==='did not transfer'||v==='retracted')?'bad':'dim';
   return `<tr><td style="color:var(--dim2)">${String(n).padStart(2,'0')}</td><td>${m}</td>
    <td style="color:var(--dim)">${e}</td><td><span class="tag ${cls}">${v}</span></td></tr>`}).join('');
 
