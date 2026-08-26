@@ -16,7 +16,7 @@ The answer turned out to be more interesting than a clean yes. A model that reli
 
 ## The finding
 
-Every number below is read directly from the actual pipeline output, not illustrative — see [`ARGUS_TrackA_Lab_Notebook.md`](ARGUS_TrackA_Lab_Notebook.md) for the full dated engineering log and [`argus_multispecies_results.csv`](argus_multispecies_results.csv) for the raw data behind every chart.
+Every number below is read directly from the actual pipeline output, not illustrative — see [`ARGUS_TrackA_Lab_Notebook.md`](ARGUS_TrackA_Lab_Notebook.md) for the full dated engineering log and [`argus_multispecies_results.csv`](data/argus_multispecies_results.csv) for the raw data behind every chart.
 
 <img src="assets/per_species_auc.png" alt="Per-species AUC before and after verification, all 10 species" width="720">
 
@@ -91,13 +91,14 @@ ARGUS_Literature_Review.md     ~20 papers reviewed and positioned against this p
 ARGUS_Roadmap_Aug_Sept_2026.md What's automated, what's manual, what's next
 ARGUS_Hardware_Deployment_Roadmap.md   Honest split: what's built vs. what's planned for field deployment
 
-argus_multispecies_results.csv     Raw output of the full 10-species run
-argus_species_covariates.csv       Per-species covariates (stereotypy, decoy similarity, etc.)
-argus_sweep_shot_count.csv         Shot-count sweep raw output
-argus_sweep_shot_strategy.csv      Shot-selection-strategy sweep raw output
-argus_sweep_snr.csv                SNR-robustness sweep raw output
-argus_sweep_decoy_difficulty.csv   Decoy-difficulty sweep raw output
-argus_ablation_ladder.csv          Full ablation-ladder raw output (feature x verifier x hard-negatives)
+data/                              All raw CSV outputs, listed below
+data/argus_multispecies_results.csv     Raw output of the full 10-species run
+data/argus_species_covariates.csv       Per-species covariates (stereotypy, decoy similarity, etc.)
+data/argus_sweep_shot_count.csv         Shot-count sweep raw output
+data/argus_sweep_shot_strategy.csv      Shot-selection-strategy sweep raw output
+data/argus_sweep_snr.csv                SNR-robustness sweep raw output
+data/argus_sweep_decoy_difficulty.csv   Decoy-difficulty sweep raw output
+data/argus_ablation_ladder.csv          Full ablation-ladder raw output (feature x verifier x hard-negatives)
 ```
 
 Files prefixed `_` are working/scratch scripts, not part of the pipeline itself.
