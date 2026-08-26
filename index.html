@@ -232,7 +232,7 @@
 <nav><div class="wrap">
   <div class="logo"><span class="mark"></span>ARGUS</div>
   <div class="links">
-    <a href="#detect">Detection</a><a href="#inside">Inside</a><a href="#space">Latent space</a>
+    <a href="#why">Why</a><a href="#detect">Detection</a><a href="#inside">Inside</a><a href="#space">Latent space</a>
     <a href="#results">Results</a><a href="#finding">Finding</a><a href="#general">Generalises?</a>
     <a href="#config">Tuning</a><a href="#noise">Noise floor</a><a href="#failed">Negatives</a>
   </div>
@@ -245,9 +245,10 @@
     <div>
       <span class="badge">Research preview · Track A · v0.3</span>
       <h1>Five calls in.<br>Every call <em>out</em>.</h1>
-      <p>ARGUS learns a bird species from five labelled examples, then finds every other
-      time that species sings across hours of Western Ghats forest audio — having never
-      been trained on it.</p>
+      <p>A threatened Western Ghats endemic has 22 labelled recordings — nowhere near
+      enough to train a standard detector. ARGUS learns it from five example calls
+      instead, then finds every other time that species sings across hours of forest
+      audio, having never been trained on it.</p>
       <div class="cta">
         <button onclick="go('detect')">Run a detection →</button>
         <button class="ghost" onclick="go('space')">See the latent space</button>
@@ -278,6 +279,42 @@
     <div><b>10/10</b><span>Species improved by verification</span></div>
   </div>
 </div></div>
+
+<!-- 00 · WHY -->
+<section id="why"><div class="wrap">
+  <div class="shead"><span class="snum">00</span><h2>Why this exists</h2></div>
+  <p class="sdesc">The Western Ghats is one of the eight hottest biodiversity hotspots on
+  Earth, and one of the least acoustically monitored. This project exists because the
+  standard playbook for building a detector — thousands of labelled examples per species —
+  is unusable exactly where conservation needs it most.</p>
+
+  <div class="grid g2">
+    <div class="card"><div class="step">The species</div><h3>A threatened endemic with almost no labelled audio</h3>
+      <p><em>Sholicola albiventris</em> (White-bellied Sholakili) — IUCN <b>Near
+      Threatened</b> (2024 assessment), High Conservation Concern per
+      <em>State of India's Birds</em> — is endemic to the Shola forests of the Western
+      Ghats' higher hills. It has <b class="mono">22</b> recordings in BirdCLEF 2024,
+      against 500 for most other species in this study. Nothing close to what a
+      standard deep-learning pipeline expects to train on — and that scarcity is not an
+      edge case, it's the normal condition for the species people most need to monitor.</p></div>
+    <div class="card"><div class="step">The question</div><h3>Can five examples do what a conservationist actually needs?</h3>
+      <p>Not "can a model learn a new species from five calls" alone — that's the easy
+      half. The question this project actually asks: <b>can it tell that species apart
+      from others that sound almost the same</b>, at the point a field team would rely
+      on it? A detector that flags "a bird called here" without knowing which bird is
+      not useful for monitoring a single threatened species in a forest full of
+      confusable ones. That gap — between noticing and knowing — is what the rest of
+      this page measures directly.</p></div>
+  </div>
+
+  <div class="callout" style="margin-top:15px">Every result on this page is reported the
+  way we'd want it reported if we were the ones deciding whether to trust it for real
+  monitoring: replicated, checked against a measured noise floor, and never separated
+  from the species it's actually about. <em>Sholicola albiventris</em> is not a label in
+  a table below — it's the reason the "which species" question exists at all, and it
+  remains the project's one genuine proof point for the hard, data-poor case the whole
+  motivation is about.</div>
+</div></section>
 
 <!-- 01 · DETECTION -->
 <section id="detect"><div class="wrap">

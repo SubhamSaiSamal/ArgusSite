@@ -40,6 +40,8 @@ The project's whole premise is "five examples." We tested whether that's actuall
 
 **What we also found: four published techniques didn't transfer.** A DCASE-2023-winning augmentation, a DCASE-2024-winning front-end, hard-negative mining, and the prototypical-probe design from Google's own Perch 2.0 paper were each tested against the measured noise floor. All four made things worse in this five-shot, short-fine-tune regime — the untouched baseline beat every one of them. We kept that result rather than quietly dropping the experiments that didn't work.
 
+**The sharpest version of the finding: the metric the field uses can't see it.** Scored the same detections, on the same recordings, three ways — average precision (what's normally reported) actually *falls* after verification (0.611 → 0.604, only 4/10 species improved), while species-discrimination AUC rises by a third of its range (0.585 → 0.751, 10/10 improved). Rank all six of our scoring rules by AP and the verified pipeline comes *last*; rank them by species AUC and it comes *first*. A team optimising the field's default metric would silently select the least species-specific model on offer. That gap between what AP sees and what actually happened is this project's real contribution — the pipeline is the instrument it was measured with.
+
 ## How it works
 
 ```
@@ -89,7 +91,13 @@ ARGUS_Literature_Review.md     ~20 papers reviewed and positioned against this p
 ARGUS_Roadmap_Aug_Sept_2026.md What's automated, what's manual, what's next
 ARGUS_Hardware_Deployment_Roadmap.md   Honest split: what's built vs. what's planned for field deployment
 
-argus_multispecies_results.csv   Raw output of the full 10-species run
+argus_multispecies_results.csv     Raw output of the full 10-species run
+argus_species_covariates.csv       Per-species covariates (stereotypy, decoy similarity, etc.)
+argus_sweep_shot_count.csv         Shot-count sweep raw output
+argus_sweep_shot_strategy.csv      Shot-selection-strategy sweep raw output
+argus_sweep_snr.csv                SNR-robustness sweep raw output
+argus_sweep_decoy_difficulty.csv   Decoy-difficulty sweep raw output
+argus_ablation_ladder.csv          Full ablation-ladder raw output (feature x verifier x hard-negatives)
 ```
 
 Files prefixed `_` are working/scratch scripts, not part of the pipeline itself.
