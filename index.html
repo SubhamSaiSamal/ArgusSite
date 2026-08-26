@@ -445,7 +445,7 @@
   <div class="shead"><span class="snum">03</span><h2>The confusion landscape</h2></div>
   <p class="sdesc">The four decoy species were not chosen by hand — they are the four species,
   out of thirty candidates, whose calls sit closest to the target inside the verifier's
-  1280-dimensional embedding space. This is that space, projected to two dimensions.</p>
+  1536-dimensional embedding space. This is that space, projected to two dimensions.</p>
   <div class="grid g2">
     <div class="card"><div class="label" style="margin-bottom:12px">Perch embedding space · principal components 1–2</div>
       <div id="proj"><p class="note">Connect an engine to populate.</p></div>
@@ -513,12 +513,55 @@
       <p>Passing every stage-1 candidate to a Perch-embedding verifier lifts mean species AUC
       to <b class="mono" style="color:var(--ok)">0.749</b> — a gain of
       <b class="mono">+0.161</b> (SE 0.020, d/SE 8.13), and every one of the ten gains clears
-      the encoder-training noise floor on its own. False alarms on bird-free audio fall
-      sharply throughout — as much as <b class="mono">72.5 → 1.5</b> per hour for the
-      easiest species. This has now been run three independent times — gains of
+      the encoder-training noise floor on its own. False alarms on audio with no known target fall
+      sharply throughout — mean <b class="mono">54.0 → 13.4</b> per hour, a
+      <b class="mono">4×</b> reduction (best case 72.5 → 1.5; worst, comkin1, only 78 → 54). This has now been run three independent times — gains of
       <b class="mono">+0.165, +0.166, +0.161</b> — with the largest per-species move between
-      any two sessions at <b class="mono">0.009</b>.</p></div>
+      any two sessions at <b class="mono">0.015</b>, and most species inside
+      <b class="mono">0.010</b>.</p></div>
   </div>
+
+  <div class="card tight" style="margin-bottom:12px">
+    <div class="label" style="margin-bottom:4px">The metric the field uses cannot see this result</div>
+    <p class="note" style="margin:0 0 10px;font-size:12.5px">Identical detections, identical
+    recordings, ten species — scored three different ways. Only the ranking changes.</p>
+    <div class="tbl-scroll"><table>
+      <thead><tr><th>Metric</th><th>Stage 1</th><th>Verified</th><th>Change</th><th><i>t</i></th><th>Species improved</th></tr></thead>
+      <tbody class="mono">
+        <tr><td>Average precision <span style="color:var(--dim)">· the field's default</span></td>
+            <td>0.611</td><td>0.604</td><td style="color:var(--bad)">−0.008</td><td>−0.73</td><td style="color:var(--bad)">4 / 10</td></tr>
+        <tr><td>Event F1</td><td>0.675</td><td>0.710</td><td>+0.035</td><td>+4.80</td><td>9 / 10</td></tr>
+        <tr><td>Species-discrimination AUC <span style="color:var(--dim)">· ours</span></td>
+            <td>0.585</td><td style="color:var(--ok)">0.751</td><td style="color:var(--ok)">+0.165</td><td>+8.83</td><td style="color:var(--ok)">10 / 10</td></tr>
+      </tbody>
+    </table></div>
+    <p class="note" style="margin-top:10px;font-size:12.5px"><b>Average precision goes
+    <em>down</em> while species discrimination goes up by a third of the available range.</b>
+    It gets worse: rank all six scoring rules by AP and the verifier comes
+    <b class="mono">last</b> (0.604); rank them by species AUC and it comes
+    <b class="mono">first</b> (0.751). A team optimising the field's default metric would
+    systematically select the <em>least</em> species-specific model on offer — and would
+    never know, because AP cannot see the difference. That is this project's actual thesis,
+    in one table, from one run.</p>
+  </div>
+
+  <div class="callout warn" style="margin-bottom:12px"><b>Read this before you ask "so isn't
+  this just Perch?" — because the honest answer is more interesting than a defence.</b>
+  That <span class="mono">0.749</span> ranks candidates by the <em>verifier's</em> score
+  alone. We tested six ways of combining the two stages' scores, and <b>every rule that mixes
+  them scores worse</b> than throwing stage 1's opinion away at ranking time:
+  <span class="mono">v</span> alone <b class="mono">0.751</b>,
+  <span class="mono">√p·v</span> 0.650, <span class="mono">p·v</span> 0.626,
+  <span class="mono">p</span> alone 0.585 <span style="color:var(--dim)">(10 species × 3
+  encoder seeds × 3 eval seeds)</span>. So stage 1's <em>confidence</em> carries no ranking
+  information the verifier doesn't already have.
+  <br><br>That is not stage 1 being useless — it is the finding, stated precisely. Perch is a
+  clip-level model: hand it five seconds and it tells you what's in them. It cannot tell you
+  <em>where</em>, in four hours of forest audio, to look. Stage 1 does the localisation, and
+  the 120 planted calls it proposes are the only reason there is anything for a verifier to
+  rank. The two stages are good at different jobs, and this is the sharpest measurement of
+  that split anywhere in the project: <b>knowing something called ≠ knowing which bird
+  called</b>, in the same numbers, from the same run.</div>
 
   <div class="callout warn"><b>A number we retired, and why — and an honest coincidence
   worth addressing directly.</b> An earlier build reported stage-1 at
@@ -562,17 +605,21 @@
   gain clears the measured encoder-training noise floor on its own, so this isn't a handful
   of species riding on a few noisy outliers.</div>
 
-  <div class="callout warn" style="margin-top:12px"><b>What we learned about difficulty.</b>
-  Nine species read this analysis before us and found no consistent predictor of task
-  difficulty (Nolasco&nbsp;et&nbsp;al. 2023, §4.1). Across our ten species, <b>call
-  stereotypy</b> — how consistent a species' calls are with each other — correlates with
-  stage-1 AUC at <span class="mono">r=0.59</span> and with the verification gain at
-  <span class="mono">r=−0.56</span>: species with more variable calls score worse before
-  verification and gain more from it. Directional, not proof (n=10, below the significance
-  threshold at this sample size) — but it's mechanistically sensible, and it's exactly the
-  kind of factor the field has been looking for. <em>Sholicola albiventris</em>, this
-  project's founding species, has the lowest stereotypy in the set and the lowest stage-1
-  score. That's not a coincidence we're hiding from either.</div>
+  <div class="callout warn" style="margin-top:12px"><b>A lead we tested properly and then
+  had to demote — our seventh retraction.</b> The field asked what predicts few-shot
+  difficulty and found no consistent answer (Nolasco&nbsp;et&nbsp;al. 2023, §4.1). Across our
+  ten species, <b>call stereotypy</b> — how self-similar a species' calls are — correlates
+  with stage-1 AUC at <span class="mono">r=0.59</span>, which looked like a candidate answer.
+  Then we ran the test that mattered. We screened <b>six</b> covariates, so the honest
+  question is how often the <em>best</em> of six reaches r=0.59 by chance: a permutation test
+  says <b class="mono">p=0.25</b>. Removing the single rarest species drops it to
+  <span class="mono">r=0.36</span>. And <span class="mono">n_recordings</span> correlates
+  almost as strongly (<span class="mono">0.53</span>) despite nine of ten species being tied
+  at BirdCLEF's 500-recording cap — meaning that variable is really a
+  <em>Sholicola albiventris</em> indicator wearing a different label, and quite possibly so
+  is stereotypy. <b>We are not claiming this finding.</b> What we can say: here is the
+  covariate we'd bet on, here is precisely why n=10 cannot test it, and here is the design
+  that would. It's worth more as a documented retraction than it ever was as a result.</div>
 
   <div class="callout" style="margin-top:12px"><b>One limitation worth stating plainly.</b>
   Nine of the ten species have 500 available recordings; the pre-registration rule selects
@@ -589,33 +636,72 @@
     <div class="tbl-scroll"><table>
       <thead><tr><th>SNR</th><th>Raw verified AUC</th><th>AUC · localised calls only</th><th>Target coverage</th></tr></thead>
       <tbody class="mono">
-        <tr><td>+9&nbsp;dB</td><td>0.768</td><td style="color:var(--ok)">0.849</td><td>86%</td></tr>
-        <tr><td>+6&nbsp;dB</td><td>0.747</td><td style="color:var(--ok)">0.849</td><td>83%</td></tr>
-        <tr><td>+3&nbsp;dB</td><td>0.735</td><td style="color:var(--ok)">0.861</td><td>80%</td></tr>
-        <tr><td>0&nbsp;dB</td><td>0.706</td><td style="color:var(--ok)">0.864</td><td>76%</td></tr>
-        <tr><td>&minus;3&nbsp;dB</td><td>0.673</td><td style="color:var(--ok)">0.851</td><td>72%</td></tr>
-        <tr><td>&minus;6&nbsp;dB</td><td>0.608</td><td style="color:var(--ok)">0.849</td><td>60%</td></tr>
+        <tr><td>+9&nbsp;dB</td><td>0.747</td><td style="color:var(--ok)">0.857</td><td>82%</td></tr>
+        <tr><td>+6&nbsp;dB</td><td>0.748</td><td style="color:var(--ok)">0.854</td><td>82%</td></tr>
+        <tr><td>+3&nbsp;dB</td><td>0.700</td><td style="color:var(--ok)">0.855</td><td>76%</td></tr>
+        <tr><td>0&nbsp;dB</td><td>0.706</td><td style="color:var(--ok)">0.867</td><td>75%</td></tr>
+        <tr><td>&minus;3&nbsp;dB</td><td>0.660</td><td style="color:var(--ok)">0.856</td><td>69%</td></tr>
+        <tr><td>&minus;6&nbsp;dB</td><td>0.607</td><td style="color:var(--ok)">0.853</td><td>60%</td></tr>
       </tbody>
     </table></div>
     <p class="note" style="margin-top:10px;font-size:12.5px">Raw AUC falls because
     <code>_auc</code> scores an unlocalised call 0.0 — so a missed detection and a real
     species mix-up look identical to that metric. Excluding calls stage 1 never found at all
-    tells a different story: AUC among <em>localised</em> calls is
-    <b class="mono">0.849 → 0.849</b> — a change of exactly zero — from +9&nbsp;dB down to
-    &minus;6&nbsp;dB. What degrades with SNR is coverage, 86% down to 60%, not species
-    discrimination.</p>
+    tells a different story: AUC among <em>localised</em> calls is flat at
+    <b class="mono">~0.855</b> from +9&nbsp;dB down to &minus;6&nbsp;dB. What degrades with
+    SNR is coverage, 82% down to 60%, not species discrimination. Run twice independently —
+    end-to-end change <b class="mono">+0.000</b> and <b class="mono">&minus;0.004</b>.</p>
   </div>
 
   <div class="callout warn" style="margin-top:12px"><b>The pre-registered prediction was
   wrong, and the actual result is the stronger one.</b> Species discrimination does not
   shrink as calls get fainter — it is flat within noise across the whole tested range, once
   a call is actually found. What fails in quiet audio is <em>detection</em>, not
-  <em>identification</em>. A bug in our own first pass at this analysis briefly buried the
-  result: a verdict check tested only whether a change was distinguishable from noise, not
-  which side of zero it landed on — so a change of exactly 0.000 printed as "too close to
-  call" instead of the flat result it actually was. Caught against the real numbers same
-  session, fixed, and covered with a regression test asserting the old rule really did
-  misclassify this case.</div>
+  <em>identification</em>. And the control makes it sharper: stage&nbsp;1's <em>own</em>
+  localised-call AUC <b class="mono">does</b> degrade with SNR
+  (<b class="mono">0.499 → 0.432</b>, clear of the noise floor) while the verified pipeline's
+  stays flat — so <b>the verifier is what confers the SNR-invariance</b>, not the front-end.
+  A bug in our own first pass at this analysis briefly buried the result: a verdict check
+  tested only whether a change was distinguishable from noise, not which side of zero it
+  landed on — so a change of exactly 0.000 printed as "too close to call" instead of the flat
+  result it actually was. Caught against the real numbers same session, fixed, and covered
+  with a regression test asserting the old rule really did misclassify this case.</div>
+
+  <div class="card tight" style="margin-top:15px">
+    <div class="label" style="margin-bottom:4px">Were the decoys chosen to flatter the result?</div>
+    <p class="note" style="margin:0 0 10px;font-size:12.5px">Every number on this page is
+    scored against the <em>four acoustically hardest</em> confusable species. That was a
+    deliberate choice — but until this ran, "we didn't pick easy decoys" was an assertion
+    rather than a measurement.</p>
+    <div class="tbl-scroll"><table>
+      <thead><tr><th>Decoy set</th><th>Stage&nbsp;1 AUC</th><th>Verified AUC</th><th>Gain</th></tr></thead>
+      <tbody class="mono">
+        <tr><td>Hardest 4 <span style="color:var(--dim)">· what we report</span></td>
+            <td>0.490</td><td style="color:var(--ok)">0.747</td><td>+0.257</td></tr>
+        <tr><td>Ranks 5–8 <span style="color:var(--dim)">· medium</span></td>
+            <td>0.555</td><td>0.775</td><td>+0.220</td></tr>
+        <tr><td>4 at random <span style="color:var(--dim)">· the easy path</span></td>
+            <td>0.566</td><td style="color:var(--warn)">0.786</td><td>+0.220</td></tr>
+      </tbody>
+    </table></div>
+    <p class="note" style="margin-top:10px;font-size:12.5px">Choosing decoys at random
+    instead of hardest-first would have bought <b class="mono">+0.039</b> AUC. The headline
+    number is the conservative one. Verification's gain itself is flat across all three tiers
+    (+0.257 vs +0.220, inside the noise bound), so the effect doesn't depend on stacking the
+    test in its favour either way.</p>
+  </div>
+
+  <div class="callout" style="margin-top:12px"><b>A sanity check we wrote turned out to be
+  wrong — and the reason is worth more than the check was.</b> We asserted that peak decoy
+  similarity must fall hardest&nbsp;→&nbsp;medium&nbsp;→&nbsp;random "by construction". It
+  doesn't. <em>Medium</em> deliberately excludes the top four, so its peak is a fixed
+  ceiling; <em>random</em> draws from the whole pool, so with 30 candidates and 4 draws it
+  catches one of the four hardest <b class="mono">~45%</b> of the time — and peak similarity
+  is a maximum over that draw. Random is average-difficulty-with-high-variance, not an easy
+  tier. The experiment was never broken: AUC ordered correctly in every species. Only the
+  one-number proxy misordered — the same lesson an earlier decoy-pool confound taught by
+  accident, now reproduced on purpose. <b>One similarity score does not capture a decoy
+  set's difficulty.</b></div>
 </div></section>
 
 <!-- 07 · CONFIGURATION -->
@@ -634,30 +720,32 @@
       project is "five". This tests it.</p>
       <div id="shotChart"></div>
       <div class="lgd" id="shotLgd" style="margin-top:8px"></div>
-      <p class="note" style="margin-top:10px;font-size:12.5px"><b>One shot is clearly not
-      enough; beyond three, we honestly can't resolve it.</b> 1→3 buys
-      <span class="mono">+0.067</span> — a real step. 3→5 buys <span class="mono">+0.042</span>
-      (right at the edge of the noise floor) and 5→10 buys <span class="mono">+0.027</span>
-      (inside it), against a <span class="mono">0.043</span> run-to-run spread measured at
-      this sample size (3 species) — now measured a second independent time, with results
-      this close to the first pass. We're not claiming a plateau we can't back up — only that
-      going from one example to a handful clearly matters, and beyond that this study can't
-      distinguish the steps from noise yet.</p>
+      <p class="note" style="margin-top:10px;font-size:12.5px"><b>More examples help
+      cumulatively; no single step is decisive.</b> Measured three independent times now.
+      Going 1→10 buys <span class="mono">+0.123</span> on average — unambiguous, well clear
+      of the <span class="mono">0.043</span> noise floor. But the individual steps straddle
+      it: 1→3 came in at <span class="mono">+0.067, +0.067, +0.042</span> across the three
+      runs (mean <span class="mono">+0.059</span>), 3→5 at <span class="mono">+0.041</span>
+      and 5→10 at <span class="mono">+0.023</span>. Our earlier phrasing — "one shot is
+      clearly not enough" — was firmer than three runs support. Honest version: the 1→3 step
+      is the largest and probably real, but this study cannot call any individual step
+      decisively above noise in <em>every</em> run.</p>
     </div>
     <div class="card tight">
       <div class="label" style="margin-bottom:4px">Which five examples?</div>
       <p class="note" style="margin:0 0 10px;font-size:12.5px">Nobody has published this for
       few-shot bioacoustics. Our honest answer: it isn't resolved yet either.</p>
       <div id="stratChart"></div>
-      <p class="note" style="margin-top:10px;font-size:12.5px">Spread across strategies
-      (<span class="mono">0.073</span>, second independent measurement — was 0.068 the first
-      time) is smaller than the run-to-run noise at this sample size
-      (<span class="mono">0.024</span> mean sd) — <em>and</em> the per-species winners
-      disagree completely: <span class="mono">rated</span> wins for barswa,
-      <span class="mono">random</span> for bcnher, <span class="mono">diverse</span> for
-      whbsho3. Only "first five, no curation" (the DCASE default) looks consistently weaker.
-      We're not claiming a best strategy — we're reporting that it isn't settled, honestly,
-      rather than picking the number that looks best.</p>
+      <p class="note" style="margin-top:10px;font-size:12.5px">Measured three independent
+      times, and the aggregate winner <em>changed</em> each time — <span class="mono">rated,
+      rated, random</span>. Spread across strategies (<span class="mono">0.068 / 0.073 /
+      0.079</span>) never separates from the run-to-run noise. What <em>is</em> stable is
+      species-specific, not global: <span class="mono">diverse</span> is best for whbsho3 in
+      3/3 runs and <span class="mono">random</span> best for bcnher in 3/3, while
+      <span class="mono">first</span> is worst for whbsho3 and <span class="mono">diverse</span>
+      worst for barswa in 3/3. So which five you pick clearly matters — but the right answer
+      depends on the species, and no single strategy wins overall. We report that rather than
+      naming whichever one happened to top the last run.</p>
     </div>
   </div>
 
@@ -898,7 +986,7 @@ const NOISE_IN=0.025;     // within-session floor, from retraining the encoder o
 // the commit history. Every number here is read directly from
 // argus_multispecies_results.csv -- see _gen_site_data.py for the extraction script.
 // All numbers below are the 24 Aug 2026 run -- the THIRD independent full-pipeline session.
-// Species-level AUC/F1/FA figures move by at most 0.009 from the two runs before it (16 Aug,
+// Species-level AUC/F1/FA figures move by at most 0.015 from the two runs before it (16 Aug,
 // 18 Aug); decoy-similarity and stereotypy are deterministic given the fixed 10-species
 // target list, so those two columns are identical across all three sessions by construction.
 const R={
@@ -1314,12 +1402,23 @@ const ABL=[
  [32,'Ablation ladder, completed (was quota-killed at 3/10)','all 7 alternatives rejected, clear a 0.009 floor','confirmed'],
  [33,'Specificity vs SNR (pre-registered prediction: shrinks)','AUC flat 0.849→0.849; only detection coverage falls','finding'],
  [34,'Verdict-logic bug in the SNR analysis itself','printed "too close to call" for a change of 0.000','bug fixed'],
- [35,'Third independent centrepiece replication','max per-species move 0.009 across 3 sessions','confirmed'],
+ [35,'Third independent centrepiece replication','max per-species move 0.015 across 3 sessions','confirmed'],
+ [36,'Decoy difficulty sweep (hard vs medium vs random)','easy decoys would have bought +0.039 AUC','confirmed'],
+ [37,'"Verification gain depends on decoy difficulty"','+0.257 hard vs +0.220 random, inside noise','no real effect'],
+ [38,'Our own decoy sanity check’s premise','random draws catch a top-4 decoy ~45% of the time','bug fixed'],
+ [39,'Stage-1 specificity IS SNR-dependent (control)','0.499 → 0.432 while verified stays flat','finding'],
+ [40,'"One shot is clearly not enough" phrasing','1→3 step ranged 0.042–0.067 across 3 runs','softened'],
+ [41,'Fusing stage-1 and verifier scores','every mix scores worse than verifier alone','no real gain'],
+ [42,'Recall-matched false-alarm control (thr_r90)','peak recall 0.778, threshold never binds; 237.9 vs 236.9','unusable'],
+ [43,'Call stereotypy as a difficulty predictor','best-of-6 permutation p=0.25; r 0.59→0.36 without whbsho3','retracted'],
+ [44,'"Largest per-species move 0.009"','actual max across 3 sessions is 0.015','corrected'],
 ];
 $('#ablTbl').innerHTML=ABL.map(([n,m,e,v])=>{
   const cls=(v==='adopted'||v==='confirmed'||v==='new lead')?'ok':
             (v==='finding'||v==='bug fixed'||v==='confound found')?'warn':
-            (v==='contradicts literature'||v==='did not transfer'||v==='retracted')?'bad':'dim';
+            (v==='contradicts literature'||v==='did not transfer'||v==='retracted'
+             ||v==='no real effect'||v==='softened'||v==='unusable'
+             ||v==='corrected')?'bad':'dim';
   return `<tr><td style="color:var(--dim2)">${String(n).padStart(2,'0')}</td><td>${m}</td>
    <td style="color:var(--dim)">${e}</td><td><span class="tag ${cls}">${v}</span></td></tr>`}).join('');
 

@@ -2345,6 +2345,300 @@ it was the hardest case in the set, which is itself worth knowing).
 
 ---
 
+## Day 29 — 2026-08-24 — Full overnight run (11h17m, unattended): third replication holds,
+the ablation ladder finally completes, and the SNR question resolves the good way
+
+**Context.** First attempt at an unattended overnight run (Kaggle "Save & Run All / Commit")
+died in cell 1: `BackendError: "New Models cannot be attached in non-interactive sessions"`.
+Root cause — the Perch model had never been manually attached as a Kaggle Input; every prior
+run was interactive, and interactive sessions silently cover for that with a dynamic
+runtime fetch that background sessions are not allowed to do. Fixed by attaching the model
+via the Input panel (no code change). Re-run completed clean: **11h 17m 32s, GPU T4 x2, all
+four cells, all five output CSVs written.**
+
+**🟢 Centrepiece — third independent replication, and it's tight.** Mean gain across three
+separate sessions: **+0.165, +0.166, +0.161.** This run: 0.587 → 0.749, 10/10 species, SE
+0.020, d/SE 8.13. Largest per-species move versus the 16 Aug run is 0.009. This is no longer
+"a result" — it's a result that survives being run three times independently.
+
+One small, honestly-flagged wobble: below-chance stage-1 species count is **1/10 this run**
+(bcnher at 0.503) versus 2/10 previously (bcnher at 0.492/0.496 across the two earlier
+sessions). bcnher sits right at the chance line across all three runs — this reads as a
+borderline species near 0.50, not a new finding, and not worth a claim either way.
+
+**🟢 The ablation ladder is finally complete — 10/10 configs, not 3/10.** The 22 Aug quota
+cutoff left this exactly where the *first* ladder attempt died back on Day 26: real data
+missing on the techniques that mattered. Checkpointing meant nothing already-run had to be
+repeated. Full result, baseline noise floor **0.009** (three encoder seeds: 0.737, 0.745,
+0.744 — the tightest floor measured yet):
+
+| config | delta vs baseline | verdict |
+|---|---|---|
+| log-Mel front-end | **−0.137** | REAL, rejected |
+| hard-negative mining | **−0.066** | REAL, rejected |
+| prototypical probe | **−0.018** | REAL, rejected — and FA/hr 27.8 vs baseline's 8.2 (3.4×) is the sharper reason to reject it, not the AUC delta alone |
+| every other config | all ≤ −0.044 | REAL, rejected |
+
+All three main effects (VERIFIER, USE_HARD_NEG, FEATURE) exceed the noise floor by 3.4–5.4×
+d/SE. Day 27's conclusion — plain baseline beats every imported technique — no longer rests
+on a 2-3 species pilot carried forward as an assumption (Day 28's "what is owed"). It is now
+argued from a complete factorial. That item is closed.
+
+**🟢 The SNR question (roadmap 3.2) resolves — against the pre-registered prediction, and
+that's the stronger outcome.** Raw verified AUC falls 0.768 → 0.608 from +9dB to −6dB. But
+`score_spec_detected()` (added 18 Aug specifically to separate detection failure from
+species confusion) tells a different story: AUC among items stage 1 actually *localised* is
+**0.849, 0.849, 0.861, 0.864, 0.851, 0.849** — flat within noise across the entire range,
+change of exactly **0.000** end to end. What actually falls with SNR is *coverage*: 86% → 60%
+target localisation. The pre-registered prediction was "the verifier's advantage shrinks as
+calls get fainter" — it does not. **Species discrimination is SNR-invariant, once a call is
+found at all; what degrades is detection.** Stronger claim than what was predicted, and one
+with a mechanism (score_spec_detected's own reasoning, published two days before this run,
+predicted ≈0.86 flat from the coverage numbers alone — this run measured 0.849–0.864
+directly, an out-of-sample confirmation of that reasoning, not a fit to it).
+
+**🔴 A bug in this project's own analysis code buried that result, caught same-session.** The
+verdict logic added 18 Aug tested only `margin < KNIFE*bound`, true for both "change ≈
+bound" (genuinely ambiguous) and "change ≪ bound" (confidently flat) — opposite conclusions,
+one branch. The run printed **"TOO CLOSE TO CALL"** for a change of exactly 0.000 against a
+0.045 bound, which is the strongest possible evidence of flatness, not an absent result.
+Root-caused same day, rewritten as a proper three-way verdict (real trend / confidently flat
+/ genuinely unresolved), and covered with 11 new regression assertions — including one that
+asserts the *old* rule really did misclassify this exact case, so the bug can't silently
+reappear. The underlying data was never wrong; only the printed sentence was. Logged plainly
+because the same standard applied to the pipeline's own bugs applies to the analysis code
+written to interpret it.
+
+**🔴 Partial correction to a Day-28/18-Aug claim.** Previously stated the *worst*
+shot-selection strategy per species was identical across two independent runs. A third run
+breaks that for one species: bcnher's worst flips from `diverse` (previous two runs) to
+`first` (this run). What actually survives all three runs, large-margin and species-specific:
+`first` is consistently worst for **whbsho3**, `diverse` consistently worst for **barswa**.
+bcnher's `first` and `diverse` scores sit within noise of each other in every run — "worst
+strategy" for bcnher specifically was never resolvable at `SWEEP_SEEDS=(7,8)`, and claiming
+otherwise was the error, not the strategy choice itself.
+
+**Shot count, third measurement:** 1→3 **+0.067** (real), 3→5 **+0.042** (borderline against
+the 0.043 floor), 5→10 **+0.027** (noise). Matches 18 Aug closely. "Five shots" as the
+practical plateau remains defensible.
+
+**What is owed, going forward:** decoy-difficulty sweep (roadmap 3.3) still not built — the
+one item left in the Aug 26-30 window. Stereotypy correlation still needs more species or a
+direct manipulation before it's more than a lead (unchanged from Day 28). DCASE external
+validation (roadmap §4) not started, timeboxed Aug 31 – Sept 6 per the original plan.
+
+Cross-ref: roadmap §3.2 (SNR sweep — now resolved, favourably); roadmap §1b/Day 27 (ladder
+ranking — now confirmed on the complete factorial, not carried as an assumption); Day 28
+"what is owed" (both items named there are now closed by this entry).
+
+**Site sync, same day.** `site/index.html` updated from these same CSVs immediately after
+this entry — hero stat, per-species table, shot/strategy/ladder charts, and a new "Does the
+advantage survive fainter calls?" card carrying the SNR table and its finding. Three
+negatives-table rows updated to the complete-factorial numbers (log-Mel, hard negatives,
+prototypical probe) rather than left showing the superseded partial-run figures alongside
+the now-current prose — a stale number in one place and a current one in another reads as
+an error even when both were true at different times. Four new negatives-table rows added
+(32–35: completed ladder, the SNR finding, the verdict-logic bug, the third replication).
+No daylight between the public-facing numbers and this log.
+
+---
+
+## Day 30 — 2026-08-25 — S4 (decoy difficulty) runs: headline is NOT flattered by an easy
+comparison. S3's finding replicates and gets stronger. A sanity check I wrote was wrong.
+
+**Run shape.** First use of the two new skip flags (`SKIP_MAIN_LOOP`, `SKIP_LADDER`) — both
+worked: cell 2 stopped after encoder training, cell 4 skipped its run loop, and the session
+came in at **3h 43m instead of ~11h**, without re-deriving anything already established.
+
+**🟢 S4, the actual question it was built for: verification's gain does NOT depend on decoy
+difficulty.** Gain on the hardest decoys **+0.257**, on random decoys **+0.220** — change
+−0.037 against a 0.080 bound, flat within noise. And the number that matters for defending
+the headline:
+
+| decoy tier | stage-1 AUC | verified AUC | gain |
+|---|---|---|---|
+| hard (top-4 nearest — what every published ARGUS number uses) | 0.490 | **0.747** | +0.257 |
+| medium (ranks 5–8) | 0.555 | 0.775 | +0.220 |
+| random (4 drawn from the full pool) | 0.566 | **0.786** | +0.220 |
+
+Taking the easy path would have bought **+0.039 AUC**. Roadmap §3.3's stated purpose was to
+turn "you picked easy decoys" from an assertion into a provable claim — that is now done,
+and it goes the right way: the headline is measured on the hardest set and is *conservative*
+by about four hundredths.
+
+**🔴 A sanity check I wrote into S4 was wrong, and its printed diagnosis was actively
+misleading.** The run flagged `VIOLATED -- decoy ranking itself may be broken` because top-1
+decoy similarity came out **hard 0.432 > random 0.401 > medium 0.310**, not the
+hard>medium>random I had asserted was true "by construction". The ranking is fine; my
+premise wasn't. `medium` deliberately excludes ranks 1–4, so its top-1 is a *deterministic
+ceiling* at `ranked[4]`. `random` samples the whole pool — with 30 candidates and 4 draws it
+catches one of the four hardest **~45% of the time** (verified: `1 − C(26,4)/C(30,4) =
+0.454`) — and top-1 is a MAX over that draw, so it lands above medium's ceiling. It did
+exactly that in 3/3 species. `random` is *average-difficulty-with-high-variance*, not an
+easy tier.
+
+Crucially the experiment itself was never broken: AUC ordered **hard < medium < random for
+both stage-1 and verified**, so the tiers separated correctly by real difficulty. Only the
+scalar proxy misorders — which is the *same lesson* the decoy-pool confound taught on Day 28
+(whbsho3 scored harder on a set with *lower* peak similarity). Two independent routes to
+"one similarity number does not capture a decoy set's difficulty", the first accidental, the
+second now by design. Sanity check rewritten to judge tiers on AUC, to check only the
+similarity relation that IS true by construction (`hard` holds the max), and to explain the
+ordering rather than call it a fault.
+
+**🟢 S3 replicates, and test [4] promotes the finding.** Detection-corrected verified AUC
+across the SNR range, two independent sessions: **0.849/0.849/0.861/0.864/0.851/0.849**
+(24 Aug) vs **0.857/0.854/0.855/0.867/0.856/0.853** (25 Aug) — flat at ~0.855 both times,
+end-to-end change +0.000 and −0.004. But the stage-1 control moved: 24 Aug it was
+unresolved (+0.020 vs a 0.046 bound); this run it **SHRINKS clear of the bound** (0.499 →
+0.432, +0.067). That is precisely the pattern the interpretation guide names as the claim
+worth making: **stage-1's own specificity degrades with SNR; the verified pipeline's does
+not — the verifier is what makes species discrimination SNR-invariant.** Stronger than
+Day 29's version, which could only say the verified curve was flat.
+
+**🔴 S2's 1→3 step is weaker than two prior runs said.** Steps across three sessions:
+
+| run | 1→3 | 3→5 | 5→10 | 1→10 |
+|---|---|---|---|---|
+| 18 Aug | +0.067 | +0.045 | +0.015 | +0.127 |
+| 23 Aug | +0.067 | +0.042 | +0.027 | +0.136 |
+| 25 Aug | **+0.042** | +0.037 | +0.027 | +0.106 |
+| mean | +0.059 | +0.041 | +0.023 | +0.123 |
+
+Only 1→3 (mean +0.059) and the cumulative 1→10 (+0.123) clear the 0.043 floor; 3→5 and
+5→10 do not, on the mean. But 1→3 itself ranged 0.042–0.067 across runs — it straddles the
+floor rather than sitting comfortably above it. Honest claim, tightened: *more shots help
+cumulatively (1→10 is unambiguous); the 1→3 step is the largest single step and probably
+real, but this study cannot call any individual step decisively above noise in every run.*
+
+**N1 unchanged in substance:** best strategy flip-flopped again (`rated`, `rated`, now
+`random`), spread 0.079. Stable across all three runs: `diverse` best for whbsho3 (3/3),
+`random` best for bcnher (3/3), `first` worst for whbsho3 (3/3), `diverse` worst for barswa
+(3/3). barswa's *best* and bcnher's *worst* both keep moving. The standing retraction holds.
+
+**What is owed, going forward:** S4 ran on the same 3 species as N1/S2/S3 — the decoy-
+difficulty result has not been checked at 10-species scale. DCASE external validation
+(roadmap §4) still not started, timeboxed Aug 31 – Sept 6. Everything in roadmap §3 is now
+built and run at least once.
+
+Cross-ref: roadmap §3.3 (decoy difficulty — now run, and it answers the question it was
+built for); Day 28 (decoy-pool confound — independently re-derived here by design); Day 29
+(S3 — replicated, and test [4] upgrades the claim).
+
+---
+
+## Day 31 — 2026-08-26 — IRIS-worthiness review: an adversarial council catches an error I
+made on the public site. Two claims corrected, one demoted properly, one new result surfaced.
+
+**Context.** Asked directly: is this project worth qualifying for IRIS Nationals, is it worth
+Gold — and explicitly asked for a multi-agent adversarial review rather than a single
+optimistic pass, on the stated theory that asking one model repeatedly just selects for
+agreeableness. Ran 6 independent judges (rubric scorer, domain expert, statistician,
+compliance auditor, competitive benchmarker, hostile reviewer) against the real files, then
+3 adversaries instructed to attack whatever the 6 agreed on, then one synthesiser told to
+re-derive every number itself rather than average the opinions. This is the record of what
+that process actually found, including the parts where it found fault with work done
+*earlier this same day*.
+
+**🔴 A number I put on the public site three hours earlier was wrong, and the council caught
+it, not me.** The site claimed "largest per-species move between any two sessions: 0.009."
+That figure was computed from the 16→18 Aug pair only and then written as if it covered all
+three sessions. Checked directly against the 24 Aug data:
+
+```
+species     s1 csv(16Aug)  s1 site(24Aug)   d      ver csv   ver site    d
+comkin1         0.622          0.620      -0.002    0.827      0.812   -0.015
+comgre          0.687          0.691      +0.004    0.781      0.771   -0.010
+comsan          0.623          0.612      -0.011    0.720      0.706   -0.014
+bcnher          0.496          0.503      +0.007    0.750      0.764   +0.014
+```
+
+Real max across all three sessions: **0.0149**, four species over the claimed 0.009. The
+underlying conclusion (replication is tight) survives — 0.015 on a 0-1 scale is still small
+— but the specific number was wrong and shipped publicly for several hours before being
+caught. Corrected to 0.015 on site and in README, and logged as negatives-table row 44 so
+the correction itself is part of the public record rather than a silent edit. Worth being
+plain about the lesson: the same standard applied to the pipeline's bugs has to apply to
+claims I write about the pipeline, and it didn't, once.
+
+**🟢 The strongest result in the project was sitting unused. The council found it by
+re-deriving numbers I already had.** Scored identical detections, identical recordings,
+three ways:
+
+| metric | stage 1 | verified | change | t | improved |
+|---|---|---|---|---|---|
+| Average precision (the field's default) | 0.611 | 0.604 | **−0.008** | −0.73 | **4/10** |
+| Event F1 | 0.675 | 0.710 | +0.035 | +4.80 | 9/10 |
+| Species-discrimination AUC (ours) | 0.585 | **0.751** | **+0.165** | +8.83 | **10/10** |
+
+Average precision — what the field actually reports — goes *down* while species
+discrimination goes up by roughly a third of its available range. Rank all six fusion rules
+by AP and the verified pipeline comes **last** (0.604); rank by species AUC and it comes
+**first** (0.751). Optimising the field's default metric would select the *least*
+species-specific model on offer, silently, because AP cannot see the gap this project is
+built to measure. This is the cleanest single statement of the project's actual thesis and
+it was never written down anywhere public until today. Added to the site as its own card,
+ahead of the fusion-rule disclosure it was previously buried inside.
+
+**🔴 Stereotypy retracted properly, with a permutation test — our seventh retraction.** Day
+28/29 reported r=0.59 (stage-1 AUC) as a directional lead, correctly flagged n=10/below
+significance at the time but not tested against the real question: with **six** covariates
+screened, what's the chance the *best* of them reaches r=0.59 purely by chance? Ran it:
+
+```
+family-wise permutation p (best-of-6 covariates, 20000 draws): 0.253
+drop whbsho3 -> r(stereotypy, auc_s1): 0.590 -> 0.363
+r(n_recordings, auc_s1) = 0.531 -- but 9/10 species tied at the 500-recording cap,
+  so this is functionally a whbsho3 indicator, not an independent covariate
+r(stereotypy, auc_ver) = 0.216 -- the gain correlation (r=-0.557) is NOT independent
+  support the way it read; gain = ver - s1, and stereotypy predicts s1 far better than
+  it predicts ver, so the gain correlation is largely arithmetic, not a second signal
+```
+
+One-in-four odds of seeing this by chance is not a finding. Site rewritten to state the
+retraction plainly with the actual numbers rather than continue calling it "directional."
+The reframe kept: this is still the covariate worth testing properly (more species, or a
+design that manipulates it directly), just not yet claimed.
+
+**🔴 Two more corrections, smaller but real.** (1) "Bird-free audio" was false — the beds
+are real Western Ghats soundscapes containing real birds; corrected to "audio with no known
+target present," which if anything strengthens the false-alarm claim (any genuine wild
+target call in there was being counted against the pipeline, so every FA/hr figure is an
+upper bound, not a point estimate). (2) The false-alarm headline reported only the
+best-case species (72.5→1.5/hr); added the mean (54.0→13.4/hr, a 4× reduction) and disclosed
+that the recall-matched control (`thr_r90`) is **unusable at this operating range** — peak
+recall anywhere in 180 rows is 0.778, so the 90%-recall threshold never actually binds, and
+the two arms come back statistically indistinguishable there (237.9 vs 236.9 FA/hr, t=−1.17).
+Better disclosed than found by a judge.
+
+**Site/README also corrected:** Perch dimensionality left over from v1 (1280→1536); a
+garbled sentence sitting directly on the stereotypy paragraph; three previously-unshipped
+CSVs (`argus_species_covariates.csv`, the two sweep CSVs) added so "raw data behind every
+chart" is closer to actually true; the README's Team section no longer names the school
+mentor, since that endorsement is not yet confirmed and IRIS's own rules ask that the school
+not be named in project materials regardless.
+
+**Mentor, status change (26 Aug):** the teacher has spoken to the principal, who is now
+supportive — the blocker that was "the only genuinely project-ending item" as of 6 Aug has
+moved. Remaining step is a parent conversation with the principal before it's final, targeted
+for the end of next week (this week is Onam leave). Separately pursuing an external reviewer
+for one hour of hostile technical review, per roadmap §6.3.
+
+**What is owed, going forward:** three items the review named as genuinely unrun — Perch
+alone as a standalone detector (answers "what did the CNN contribute" before a judge asks
+it live), stage-1 fine-tuned with species-matched negatives rather than only background
+windows, and a recordist-disjoint held-out split (rules out "did it learn the microphone,
+not the bird" — checkable, `train_metadata.csv` already has the columns). None of these are
+required before Oct 3; they close interview risk, not submission risk. DCASE external
+validation deliberately deferred to Oct-Nov, after the paper is filed — right lever, wrong
+week for it.
+
+Cross-ref: this entry corrects claims made in Day 29/30 entries and on the site the same
+day they were published — the standing practice of same-day, same-source honesty applied to
+review output, not just to Kaggle runs.
+
+---
+
 ## Standing notes for future entries
 
 - Add a new dated entry per work session, oldest to newest — don't overwrite previous entries.

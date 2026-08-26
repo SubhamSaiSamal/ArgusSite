@@ -1,6 +1,6 @@
 # ARGUS
 
-**Few-shot bioacoustic detection for an endangered Western Ghats bird — learn a species from five examples, then find it in hours of unlabelled forest audio.**
+**Few-shot bioacoustic detection for a threatened Western Ghats bird — learn a species from five examples, then find it in hours of unlabelled forest audio.**
 
 **[Live demo →](#) <!-- TODO: add your Vercel URL here -->**
 
@@ -8,7 +8,7 @@
 
 ## Why this exists
 
-The Western Ghats is one of the eight hottest biodiversity hotspots on Earth — and one of the least acoustically monitored. *Sholicola albiventris* (White-bellied Sholakili), the species this project is built around, has almost no labelled audio anywhere: a handful of recordings on Xeno-Canto, nothing close to what a normal deep-learning pipeline expects to train on.
+The Western Ghats is one of the eight hottest biodiversity hotspots on Earth — and one of the least acoustically monitored. *Sholicola albiventris* (White-bellied Sholakili) — IUCN **Near Threatened** (2024 assessment), and High Conservation Concern under *State of India's Birds* — is the species this project is built around, and it has almost no labelled audio anywhere: 22 recordings in BirdCLEF 2024, nothing close to what a normal deep-learning pipeline expects to train on.
 
 That's not a special case. Most of the species conservationists actually care about are rare *because* they're rare — which means the standard playbook (thousands of labelled examples per class) is unusable exactly where it matters most. ARGUS asks a narrower, more honest question instead: **can a model learn a new species from five example calls, and can it tell that species apart from others that sound almost the same?**
 
@@ -22,20 +22,21 @@ Every number below is read directly from the actual pipeline output, not illustr
 
 | | Stage 1 alone (matching) | + Verification (Perch) |
 |---|---|---|
-| Mean species-discrimination AUC, 10 species | 0.585 | **0.751** |
+| Mean species-discrimination AUC, 10 species | 0.587 | **0.749** |
 | Species improved by verification | — | **10 / 10** |
-| Confidence (Δ / SE) | — | **8.83** |
-| False alarms / hour, best case | up to 78 | as low as **0.7** |
+| Confidence (Δ / SE) | — | **8.15** |
+| False alarms / hour, best case | up to 90.8 | as low as **1.5** |
+| Independent full replications | — | **3** (gains +0.165, +0.166, +0.161) |
 
 0.50 AUC means the model cannot tell the target species from an acoustically similar decoy at all — a coin flip. Stage 1 alone lands there or close to it for several species; adding a Perch-embedding verification step lifts **every single one of the ten species tested**, by a margin larger than the measured run-to-run noise floor in every case. That last part matters more than it sounds — we measured the floor directly (the same configuration, run twice, scored 0.696 and 0.731 from GPU non-determinism alone) specifically so we wouldn't claim a result that was actually just noise.
 
 <img src="assets/false_alarms.png" alt="False alarm rate before and after verification, all 10 species" width="720">
 
-On audio with **no target bird present at all**, verification cuts false alarms sharply across the board — the number that actually matters if a person is the one checking every alert.
+On audio with **no known target present**, verification cuts false alarms from a mean of **54.0/hr to 13.4/hr — a 4× reduction** — the number that actually matters if a person is the one checking every alert. Two honest caveats we'd rather state than have found: these beds are real Western Ghats soundscapes, not silence, so any genuinely wild target call in them is being counted against us (every figure here is an upper bound); and our recall-matched control is unusable at this operating range — peak recall anywhere in the run is 0.778, so the 90%-recall threshold never binds and the two arms come back statistically indistinguishable at that operating point (237.9 vs 236.9/hr). The 4× reduction is measured at the best-F1 threshold, and that is the only false-alarm claim the data supports.
 
 <img src="assets/shot_count.png" alt="Species AUC as a function of number of labelled examples" width="640">
 
-The project's whole premise is "five examples." We tested whether that's actually the right number rather than assuming it: one example is clearly not enough (a real, measurable jump from 1→3 shots), and beyond three the gains get small enough that this study can't cleanly separate them from noise. We report that honestly rather than claim a tidier plateau than the data supports.
+The project's whole premise is "five examples." We tested whether that's actually the right number rather than assuming it, three separate times. Going from 1 to 10 examples buys **+0.123** AUC on average — unambiguous, well clear of the measured noise floor. But no *individual* step is: the 1→3 jump came in at +0.067, +0.067 and +0.042 across the three runs, straddling the 0.043 floor rather than clearing it. An earlier version of this README said "one example is clearly not enough" — that was firmer than three runs support, and it has been softened rather than left standing.
 
 **What we also found: four published techniques didn't transfer.** A DCASE-2023-winning augmentation, a DCASE-2024-winning front-end, hard-negative mining, and the prototypical-probe design from Google's own Perch 2.0 paper were each tested against the measured noise floor. All four made things worse in this five-shot, short-fine-tune regime — the untouched baseline beat every one of them. We kept that result rather than quietly dropping the experiments that didn't work.
 
@@ -104,6 +105,5 @@ This project keeps a public record of what didn't work alongside what did — in
 ## Team
 
 Subham Sai Samal · Vlkramzharis
-Mentor: Mrs. Jolly Verghese, Jawahar Vidyalaya Senior Secondary School
 
 <!-- TODO: add a LICENSE file and reference it here if you want this repo publicly licensed -->
