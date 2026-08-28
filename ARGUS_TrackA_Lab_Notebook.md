@@ -2384,6 +2384,15 @@ d/SE. Day 27's conclusion — plain baseline beats every imported technique — 
 on a 2-3 species pilot carried forward as an assumption (Day 28's "what is owed"). It is now
 argued from a complete factorial. That item is closed.
 
+> **⛔ CORRECTION, 28 Aug 2026 (Day 34) — the sentence above is wrong and is retracted.**
+> Those main effects were row-weighted, and the baseline config carries 3× the rows of every
+> challenger (it is repeated once per encoder seed to measure the noise floor). Counting each
+> configuration once: VERIFIER −0.048→**−0.023** (d/SE −5.35→**−1.84**), USE_HARD_NEG
+> −0.044→**−0.018**, FEATURE −0.107→**−0.093**. Only FEATURE still clears the floor. Two of
+> the three "REAL" verdicts in the table above do not survive. The *conclusion* (plain
+> baseline wins) stands, but on false-alarm rate — not on AUC. Left in place unedited because
+> this is a dated record of what was believed that day; see Day 34 for the full accounting.
+
 **🟢 The SNR question (roadmap 3.2) resolves — against the pre-registered prediction, and
 that's the stronger outcome.** Raw verified AUC falls 0.768 → 0.608 from +9dB to −6dB. But
 `score_spec_detected()` (added 18 Aug specifically to separate detection failure from
@@ -2636,6 +2645,287 @@ week for it.
 Cross-ref: this entry corrects claims made in Day 29/30 entries and on the site the same
 day they were published — the standing practice of same-day, same-source honesty applied to
 review output, not just to Kaggle runs.
+
+---
+
+## Day 32 — 2026-08-26 — ISEF category decided: Earth & Environmental Sciences
+
+Open since the roadmap first flagged it: Systems Software/Algorithms vs. Earth &
+Environmental Sciences. Decided today after checking a real precedent rather than
+guessing. "MannKaaval" (Ashwanth Sivakumar, CPS Global School, Chennai) — a satellite-
+imagery + XGBoost sand-mining detector, no physical site visits anywhere in its
+abstract, ISEF listing, or the school's own account of it — won **First Place in Earth
+& Environmental Sciences at ISEF 2026**. CPS Global's own write-up names why: "the
+value of his work lies not just in the technology behind it, but the purpose driving
+it — using innovation for environmental protection." That's a direct precedent against
+the specific worry that had been steering this project toward Algorithms instead: that
+a no-fieldwork, purely computational project would be penalised in an environmental
+category. It wasn't, at ISEF, this year, in this category.
+
+**Decision:** Earth & Environmental Sciences.
+
+**Consequence for the submission narrative, recorded now so it isn't re-litigated in
+September:** lead with the conservation/monitoring framing — a threatened, data-poor
+Western Ghats endemic, a real acoustic-monitoring gap — which is already how the
+README and site open. The metric-blindness result (average precision falls while
+species-discrimination AUC rises by a third of its range) is the technically strongest
+*new* thing this project has, but it's a measurement-science claim, not an
+environmental one. In this category it supports the lead rather than being the lead
+itself — the opposite of how it would have been framed under Algorithms.
+
+One important caveat, stated plainly rather than glossed over: this is n=1 precedent,
+read from a school's celebratory blog post, not from judges' actual scoring notes. It's
+real evidence, not a guarantee. If Environmental Sciences judging turns out to weight
+fieldwork more than this one example suggests, that's a risk accepted with eyes open,
+not one that wasn't considered.
+
+Cross-ref: roadmap's open item on category choice, now closed. `argus-iris-entry-plan`
+memory updated same day.
+
+---
+
+## Day 33 — 2026-08-26 — Confound-closing runs written (Cell 5, not yet run)
+
+Also 26 Aug 2026: added the three raw CSVs that only ever existed as Kaggle console
+output (`argus_sweep_snr.csv`, `argus_sweep_decoy_difficulty.csv`,
+`argus_ablation_ladder.csv`) — transcribed verbatim from real Kaggle Output-tab captures
+of the notebooks that produced them, aggregate-checked against expected orderings
+(decoy AUC hard<medium<random; verifier>stage-1 throughout), synced into the public
+repo's new `data/` folder, staged for the student to commit. Also verified, live, that
+IRIS's own site contradicts itself on the National Fair date: the FAQ page says Jan/Feb
+2027, the homepage's "Key Dates" timeline says November 2026 — logged as unresolved in
+`argus-iris-entry-plan`, not decided either way. Pulled the exact submission format
+(7 word-limited synopsis sections + video + separate full paper) off the live Guidelines
+page — the tri-fold poster is NOT part of the 3 Oct online submission, correcting an
+over-worried reading of the 25 Aug council review.
+
+**Main event: implemented the three items the 25 Aug council named as genuinely unrun
+("close interview risk, not submission risk")** — code only, not yet executed on Kaggle
+(needs a GPU session; Claude cannot trigger Kaggle runs). New `arguswala_confounds.py`
+(Cell 5), plus supporting changes to Cells 1 and 2:
+
+1. **Perch alone as a standalone detector** (`detect_perch_only`, CELL 2) — a sliding
+   Perch-embedding + calibrated-verifier scan across the raw recording, no stage-1 CNN
+   anywhere in the path, merged into events with a new time-domain `stitch_time()`.
+   `eval_pass`/`spec_pass`/`neg_pass` now take a swappable `detect_fn` (default
+   `detect_pv`, unchanged for every existing caller) so this reuses the *exact* planting/
+   matching logic already validated for the main pipeline, rather than a parallel
+   implementation that could quietly diverge. Pre-registered: expect Perch-alone to score
+   lower than the full pipeline — Perch was pretrained as a clip-level classifier, not a
+   localiser.
+2. **Species-matched negatives for stage-1 fine-tuning** (`USE_SPECIES_NEG`, CELL 2) —
+   `stage1()` has always drawn its per-target negatives as arbitrary background crops of
+   the bed; stage-2's Perch verifier has always trained against real other-species calls
+   (`calib_neg_species`). This rung injects real calls from `ctx['neg_calls']` (now
+   exposed by `build_target`, CELL 1) instead, with a background top-up if injection can't
+   place enough. Pre-registered per Nolasco/Liang (already cited elsewhere in this repo):
+   expect stage-1-alone to improve; no strong prior on whether it propagates to the
+   verified number.
+3. **Recordist-disjoint held-out split** (`recordist_disjoint`, `build_target`, CELL 1) —
+   "did it learn the microphone, not the bird?" Excludes, from the held-out pool, any
+   recording sharing a recordist with one of the 5 support shots. **Real open risk, found
+   while writing this, not before:** the recordist column is *assumed* to be
+   `train_metadata.csv`'s `author` field (BirdCLEF/Xeno-Canto convention) — never verified
+   against the actual attached dataset from this machine, since it has no local copy.
+   `meta.columns.tolist()` now prints at CELL 1 startup specifically so this is confirmed
+   or refuted on the very first line of the next real run, and `build_target` raises a
+   clear `KeyError` rather than silently using the wrong column if the guess is wrong.
+
+All three share `arguswala_confounds.py`'s `verdict()` — the same three-way
+real/flat/unresolved margin test as CELL 3's `trend()` (not a bare `b > a`), reusing the
+0.025 noise floor. Checkpointed to `/kaggle/working/argus_confounds.csv` per
+(run_type, species), same resume-on-restart discipline as the ladder. Runs on the same
+narrowed 3-species/2-seed convention as CELL 3/4 sweeps — these are confound checks, not
+a second headline number.
+
+**Genuine unknowns going in, stated plainly:** (a) the `author` column guess above;
+(b) Perch-alone's sliding-window cost is unmeasured — `PERCH_ALONE_STRIDE_S=0.5` is a
+guess, with a runtime warning printed after the very first (species, seed) pair so it can
+be widened before committing to the full run; (c) the recordist-disjoint held-out pool
+could come back empty for a species with few distinct recordists — `build_target` is
+written to raise loudly on that rather than silently proceed, but which species (if any)
+hit it is not yet known.
+
+New test file `_test_confounds.py` (18 assertions: `stitch_time` behaviour, the
+recordist-exclusion set logic, the three-way verdict boundary — including a regression
+guard for the exact "0.000 change must read FLAT, not unresolved" mistake S3's `trend()`
+made on 23 Aug — and AST structural checks that every new flag/parameter actually exists
+and defaults safely). `_test_v2_logic.py` (132) and `_test_ladder.py` (69) both still pass
+unmodified — the refactor did not change default behaviour for any existing caller.
+Notebook rebuilt via `_build_notebook.py`: 5 cells now, all 5 source-vs-notebook hashes
+match, all 5 pass `ast.parse`.
+
+**Not done yet, and explicitly not claimed as done:** none of the three confound runs
+have actually executed on real Kaggle data. The code is written, locally tested at the
+level local testing can reach (no GPU/Perch/BirdCLEF access from this machine), and
+notebook-packaged. Next real step is a Kaggle GPU session running Cell 5 (needs Cells 1+2
+first; independent of Cells 3/4) and logging what it actually finds — including if the
+`author` column guess turns out wrong, or if Perch-alone's stride needs widening.
+
+---
+
+## Day 34 — 2026-08-28 — Run 4: a clean replication, and two of our own bugs it exposed
+
+A 12-hour Kaggle session (`vikramzharis/notebook4e30bfbdf6`, T4 x2) ran overnight and was
+killed at the hard 43,200s ceiling, exit 137, during ablation config 10/10. **Cell 5 never
+executed** — the three confound-closing runs written on Day 33 are still unrun, and no
+`argus_confounds.csv` exists. Cause is not a bug: the uploaded notebook was the Day-33 build
+with `SKIP_MAIN_LOOP=False` and `SKIP_LADDER=False`, so it re-derived the 5.0h centrepiece
+loop and the full ladder — both already in hand — before reaching the one cell that was new.
+The repo's current build has both flags `True`; that version simply didn't exist when the
+session was launched. Timing: setup 200s, encoders 430s, main loop 18,094s, N1 3,350s,
+S2 3,331s, S3 2,869s, S4 2,614s, ladder 12,313s+.
+
+**🟢 The `author` column guess was right.** Cell 1's new schema print returned
+`[..., 'common_name', 'author', 'license', ...]` → `RECORDIST_COL = 'author' (present)`.
+The largest of Day 33's three stated unknowns is closed: the recordist-disjoint split will
+run. The other two (Perch-scan stride cost, possible empty held-out pool) remain untested.
+
+**🟢 Fourth independent centrepiece replication, and it is the tightest yet.** Mean stage-1
+0.585→**0.588**, verified 0.751→**0.753**, gain +0.165 both times (d/SE 8.83 → 8.65), 10/10
+species improved, outcome A. Largest per-species move between run 3 and run 4: **0.013**
+(bcnher, verified) and 0.012 (comgre, stage-1) — 0/10 species exceeded the 0.015 the site
+already publishes. A different machine, nine days later, reproduced the headline to 0.002 on
+the mean. The published "max move 0.015" claim now covers four sessions, not three.
+
+**🔴 Retraction #8 — "the verifier is what confers the SNR-invariance."** Right rule, wrong
+yardstick. `arguswala_sweeps.py` computed exactly two sds for the S3 curve, *both from the
+verified subset*, and handed one of them to all four `trend()` tests. Three were therefore
+judged against a series they were not measuring: [1] and [2] test the *gain* (ver − s1) but
+were bounded by sd(ver) alone; **[4] tests a stage-1 statistic but was bounded by the
+verifier's sd**, and stage-1's localised AUC is **1.70×** noisier (max sd 0.0776 vs 0.0457).
+Against its own noise floor [4] reads 0.067 change vs a 0.078 bound → **TOO CLOSE TO CALL**,
+not SHRINKS. Run 4 independently returned "too close to call" even under the old, too-tight
+bound. Rescoring all four on run 3's real CSV under the fixed pairing:
+
+| test | shipped verdict | corrected verdict |
+|---|---|---|
+| [1] gain, full SNR range | FLAT | TOO CLOSE (bound 0.106→0.081) |
+| [2] gain, coverage≥75% | FLAT | **FLAT** — robust under either bound |
+| [3] verified AUC, localised | FLAT | **FLAT** — was correctly paired all along |
+| [4] stage-1 AUC, localised | SHRINKS | TOO CLOSE (bound 0.046→0.078) |
+
+Note the two mismatches point opposite ways: [1]'s bound was too *loose* (overclaimed
+flatness), [4]'s too *tight* (overclaimed a trend). Only [4] reached the public site.
+**What survives is the load-bearing result** — "species discrimination is SNR-invariant once
+a call is localised" is test [3], correctly scored from the start, and now flat in four runs
+(end-to-end change +0.000 / +0.0045 / +0.008 against a 0.046 bound). What is withdrawn is the
+*attribution* of that invariance to the verifier. Fixed by computing `sd_gain` (paired per
+species×seed, because sd(A−B) ≠ sd(A) for correlated arms) and `sd_det_s1`, and pairing each
+test to its own series. 12 new assertions in `_test_v2_logic.py`, including guards that
+reproduce the wrong verdicts under the old bounds.
+
+**🔴 Retraction #9 — the ablation main effects were row-weighted.** `arguswala_ladder.py`
+line 237 used `groupby("species").auc_ver.mean()`. The baseline `pcen|logreg` contributes
+**9 rows** (3 species × 3 encoder seeds, repeated deliberately to measure the noise floor)
+while every challenger contributes 3 — so the highest-scoring config was counted three times
+inside the "off" arm of VERIFIER, USE_HARD_NEG *and* FEATURE(pcen), inflating every deficit:
+
+| main effect | published | config-weighted | inflation |
+|---|---|---|---|
+| VERIFIER (proto vs logreg) | −0.0477, d/SE −5.35 | **−0.0227, d/SE −1.84** | 2.10× |
+| USE_HARD_NEG | −0.0442, d/SE −3.55 | **−0.0184, d/SE −2.67** | 2.40× |
+| FEATURE (logmel vs pcen) | −0.1065, d/SE −3.44 | **−0.0933, d/SE −3.17** | 1.14× |
+
+The proto figure is the damaging one: **d/SE −1.84 fails this project's own printed bar**
+("|d/SE| < 2 is NOT evidence", `arguswala_v2.py`). We published −0.048 as having "cleared
+the noise floor outright" when correctly paired it does not clear it at all. Only FEATURE
+survives as a real AUC effect. **The rejection of the prototypical probe still stands**, on
+the evidence that was always the stronger half — false alarms rose 8.2→27.8 (PCEN) and
+3.2→37.0 (log-Mel) in run 3, and 6.5→58.5 and 2.5→48.0 in run 4: between 3× and 19×, both
+front-ends, both sessions. Rejected on false-alarm rate, not on AUC. Fixed by collapsing to
+one value per (species, config) before averaging; 15 new assertions in `_test_ladder.py` that
+reproduce the published wrong numbers under row-weighting before checking the corrected ones.
+
+**🟡 The 0.062 "noise floor" run 4 printed is an artefact — do not publish it.** The pipeline
+prints `max over 20 (species × arm) cells of (range of n=3)`, a max-of-maxes: an extreme
+order statistic of an extreme order statistic, and the least reproducible number the pipeline
+emits (0.0505 run 3 → 0.0620 run 4, while the *mean* spread moved 0.0190 → 0.0213 and the
+pooled sd 0.0116 → 0.0136). Monte Carlo at the pooled σ̂ = 0.0126 gives E[max of 20 ranges] =
+0.045, sd 0.008 — run 3 sits at the 77th percentile, run 4 at the 97th, both ordinary draws
+from *the same stationary process*. **Run 4 does not show the floor got worse.** Consequently
+`NOISE_IN = 0.025` and `NOISE = 0.035` on the site both stand and were not touched — 0.025
+matches the mean verified-arm spread (0.0246 / 0.0245 in the two runs, agreeing to 0.0001)
+and 0.035 falls out of
+the pooled sd as the 95% gate on a single-seed difference, independently reproducing the
+figure originally measured from the 0.696-vs-0.731 accident. Two published numbers survived
+scrutiny that looked, at first glance, like they were about to fail.
+
+**🟡 The cross-session/within-session paradox, resolved.** Between-session movement (≤0.013)
+is ~5× *smaller* than within-session encoder-seed spread (0.050–0.062), which looks
+impossible. Two mechanisms: the headline averages 3 seeds (seed-matched per-seed moves have
+rms 0.0157, the 3-seed means rms 0.0070 — ratio 2.23), and the eval draw is frozen by seed so
+that variance component cancels exactly. The seed *label* carries no information: correlation
+between a seed's deviation in run 3 and the same seed's in run 4 is r = 0.077 (n=60). eaywag1
+makes it vivid — 0.775/0.762/0.724 vs 0.777/0.715/0.773, seeds 1 and 2 swapping places by
+∓0.05 while the mean moved +0.0016. **The honest caveat this exposes and which is not yet on
+the site:** because `SEEDS=(7,8,9)` is frozen, the 0.013 figure demonstrates *reproducibility*,
+not *generalisation*; the eval-draw component is ~0.047 and has never been measured.
+
+**🟡 Smaller corrections.** N1's per-strategy conclusion replicates but the site's stated
+justification compared a max−min over 4 group means against a single-cell sd. Correct test is
+a two-way fit: **F(3,6) = 0.54**, below the 1.0 of pure noise, and E[range of 4 means | noise]
+= 0.102 exceeds every observed spread (0.068/0.073/0.079/0.084). Conclusion unchanged, reason
+replaced. Also: run 3's "winner" was rated 0.738461 vs random 0.738426 — a **0.00004** gap,
+and run 4 returns to rated, so "the aggregate winner changed each time" is now false as
+phrased. Per-species stability strengthens to 4/4 on all four claims. S4 replicates cleanly
+(gain flat, hard +0.246 vs random +0.211, bound 0.060) and `decoy_sim_top1` is identical to
+3 dp in 9/9 cells across runs — decoy selection is fully deterministic, making S4 a genuinely
+controlled comparison.
+
+**Method note, on how these two bugs were found.** Both came out of a 13-agent adversarial
+audit (6 independent analysis lanes, each attacked by a refuter told to re-derive every
+number rather than trust the report). Both were then re-verified by hand against the raw CSVs
+before anything was edited — the 1.70× sd ratio and all six main-effect figures in the tables
+above are my own recomputation, not the agents'. That mattered: one lane reported the sd ratio
+as 1.9×, and the correct value is 1.70×. The same standard the pipeline is held to has to
+apply to the tools used to audit it.
+
+**Addendum, same day — a second adversarial pass, and Cell 5 hardened before it ever runs.**
+The 13-agent audit above was itself re-verified: each of the 6 lanes was attacked by an
+independent refuter told to re-derive every number rather than trust the report (49 issues
+flagged, 5 marked critical). Four of the five "critical" flags turned out to be timing
+artefacts — the refuters were checking `ArgusSite/index.html`, a stale mirror that hadn't
+been re-synced from the live edits above; nothing was actually wrong. **The fifth was real
+and mattered:** an earlier pass through this same audit had concluded `authors[i] is not
+None` would let `NaN != NaN` silently *under*-exclude recordings sharing a missing-author
+value (a leak). Checked directly against real pandas objects before touching any code: a
+string column gives every missing value the *same* NaN singleton, and set membership checks
+identity before equality, so the existing code already *over*-excludes NaN-authored
+recordings as one shared pseudo-recordist — conservative, not a leak. The planned "fix"
+would have introduced the very bug it was meant to close. Only a diagnostic print was added.
+
+Two smaller self-corrections from the same pass, both caught by re-deriving numbers myself
+rather than trusting an agent's arithmetic: the 0.0246 figure two paragraphs up (an earlier
+draft of this entry had 0.027, taken from a lane's report without independently checking
+it), and the FEATURE main effect's sign claim on the live site, corrected from an unverified
+"across three independent runs" to the actually-measured 11 of 12 paired comparisons within
+the one complete factorial.
+
+**Cell 5 hardened, still pre-execution.** Beyond the NaN non-fix above: `detect_perch_only`
+(CELL 2) had a real geometry hazard, found before it ever ran — Perch's 5 s window at a
+0.5 s stride produces runs of ~9-11 consecutive above-floor positions per planted call,
+`stitch_time` merges them into ~6 s events, and a 1 s truth span can't reach `IOU_THR=0.30`
+against that — a serious risk of the detector silently scoring zero true positives across
+its whole operating range, in the exact direction of our own pre-registered prediction.
+Fixed by capping `max_event_sec=SEG_SEC` and passing `gap_s` explicitly. Also: `USE_SPECIES_NEG`'s
+"200 species-matched negatives" claim was never achievable (0.4 s gaps around 1 s calls need
+>=280 s in a 240 s bed; measured placement rate ~126/200) and is now stated honestly as
+~126 species-matched + ~74 background top-up. A stale aggregation-column bug in P1's summary
+table, a config-contamination assert (guards against `SKIP_LADDER` silently leaving a
+non-baseline encoder bound), one dead function, and `CONFOUND_SPECIES` widened 3→5 species
+were also fixed/added. `NOISE_FLOOR` was checked, not just carried over: 0.062 (the
+pipeline's run-wide figure) is driven entirely by `eaywag1`, which isn't among
+`CONFOUND_SPECIES` — the configuration-matched floor from run 4's own ladder is 0.017, and
+0.025 remains the right bound. New `SKIP_SWEEPS` flag (default `True` for the next run,
+same revert-after-use discipline as the other two) skips Cell 3's ~3.4h now that all four
+sweeps have replicated twice with consistent verdicts. 26 new test assertions.
+
+**Still owed:** the three confound runs have not executed — this is now the entire remaining
+gap. Projected budget for the recommended next session (Cells 1→2→5, `SKIP_MAIN_LOOP`/
+`SKIP_LADDER`/`SKIP_SWEEPS` all `True`, 5 species): **3.76h against the 12h ceiling, 8.24h
+headroom** — comfortable even if the per-window Perch cost is off by a wide margin. Watch
+Cell 5's own timing print after the first (species, seed) pair before walking away.
 
 ---
 

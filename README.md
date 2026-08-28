@@ -26,7 +26,7 @@ Every number below is read directly from the actual pipeline output, not illustr
 | Species improved by verification | — | **10 / 10** |
 | Confidence (Δ / SE) | — | **8.15** |
 | False alarms / hour, best case | up to 90.8 | as low as **1.5** |
-| Independent full replications | — | **3** (gains +0.165, +0.166, +0.161) |
+| Independent full replications | — | **4** (gains +0.165, +0.166, +0.161, +0.165) |
 
 0.50 AUC means the model cannot tell the target species from an acoustically similar decoy at all — a coin flip. Stage 1 alone lands there or close to it for several species; adding a Perch-embedding verification step lifts **every single one of the ten species tested**, by a margin larger than the measured run-to-run noise floor in every case. That last part matters more than it sounds — we measured the floor directly (the same configuration, run twice, scored 0.696 and 0.731 from GPU non-determinism alone) specifically so we wouldn't claim a result that was actually just noise.
 

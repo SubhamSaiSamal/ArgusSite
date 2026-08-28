@@ -275,7 +275,7 @@
     <div><b>5</b><span>Labelled examples</span></div>
     <div><b>40</b><span>Species pretrained</span></div>
     <div><b>1536</b><span>Verifier dimensions</span></div>
-    <div><b>0.749</b><span>Species AUC · verified · 10 species · 3&times; replicated</span></div>
+    <div><b>0.749</b><span>Species AUC · verified · 10 species · 4&times; replicated</span></div>
     <div><b>10/10</b><span>Species improved by verification</span></div>
   </div>
 </div></div>
@@ -552,10 +552,12 @@
       <b class="mono">+0.161</b> (SE 0.020, d/SE 8.13), and every one of the ten gains clears
       the encoder-training noise floor on its own. False alarms on audio with no known target fall
       sharply throughout — mean <b class="mono">54.0 → 13.4</b> per hour, a
-      <b class="mono">4×</b> reduction (best case 72.5 → 1.5; worst, comkin1, only 78 → 54). This has now been run three independent times — gains of
-      <b class="mono">+0.165, +0.166, +0.161</b> — with the largest per-species move between
-      any two sessions at <b class="mono">0.015</b>, and most species inside
-      <b class="mono">0.010</b>.</p></div>
+      <b class="mono">4×</b> reduction (best case 72.5 → 1.5; worst, comkin1, only 78 → 54). This has now been run four independent times — gains of
+      <b class="mono">+0.165, +0.166, +0.161, +0.165</b> — with the largest per-species move
+      between any two sessions at <b class="mono">0.015</b>, and most species inside
+      <b class="mono">0.010</b>. The fourth run, on a different machine nine days after the
+      third, reproduced it to <b class="mono">0.013</b> at the worst species and
+      <b class="mono">0.002</b> on the mean.</p></div>
   </div>
 
   <div class="card tight" style="margin-bottom:12px">
@@ -607,8 +609,8 @@
   recordings into the held-out pool) and was retired.
   Since then we've measured this species' stage-1 AUC six separate times on the corrected
   pipeline: <span class="mono">0.517</span> and <span class="mono">0.509</span> in earlier
-  smaller runs, and <span class="mono">0.469, 0.470, 0.464</span> across three independent
-  full 10-species runs (0.456–0.480 across encoder seeds within any one of them). Those three
+  smaller runs, and <span class="mono">0.469, 0.470, 0.464, 0.458</span> across four independent
+  full 10-species runs (0.448–0.480 across encoder seeds within any one of them). Those four
   figures sit close to the retired number — by coincidence,
   not by relapse: <b>decoys are ranked among the species NOT chosen as targets</b>, so a
   10-target run and a 2-target run draw this species' decoys from different pools. Here the
@@ -694,11 +696,18 @@
   wrong, and the actual result is the stronger one.</b> Species discrimination does not
   shrink as calls get fainter — it is flat within noise across the whole tested range, once
   a call is actually found. What fails in quiet audio is <em>detection</em>, not
-  <em>identification</em>. And the control makes it sharper: stage&nbsp;1's <em>own</em>
-  localised-call AUC <b class="mono">does</b> degrade with SNR
-  (<b class="mono">0.499 → 0.432</b>, clear of the noise floor) while the verified pipeline's
-  stays flat — so <b>the verifier is what confers the SNR-invariance</b>, not the front-end.
-  A bug in our own first pass at this analysis briefly buried the result: a verdict check
+  <em>identification</em>. We previously went further and claimed the control made this
+  sharper — that stage&nbsp;1's <em>own</em> localised-call AUC degrades with SNR while the
+  verified pipeline's stays flat, so <b>the verifier</b> was what conferred the invariance.
+  <b>That claim is retracted</b> (28 Aug 2026, our eighth). It was real arithmetic against
+  the wrong yardstick: the noise bound for all four of these tests was computed from the
+  <em>verified</em> series, but test 4 measures a <em>stage-1</em> quantity, and stage 1's
+  localised AUC is <b class="mono">1.7×</b> noisier. Against its own noise floor the change
+  is <b class="mono">0.067</b> versus a bound of <b class="mono">0.078</b> — unresolved, not
+  a finding. A fourth independent run agreed, returning "too close to call" even under the
+  old, too-tight bound. What survives is the result above, which was always scored against
+  the right series and has now held flat four times.
+  A separate bug in our first pass at this analysis briefly buried that result: a verdict check
   tested only whether a change was distinguishable from noise, not which side of zero it
   landed on — so a change of exactly 0.000 printed as "too close to call" instead of the flat
   result it actually was. Caught against the real numbers same session, fixed, and covered
@@ -758,7 +767,7 @@
       <div id="shotChart"></div>
       <div class="lgd" id="shotLgd" style="margin-top:8px"></div>
       <p class="note" style="margin-top:10px;font-size:12.5px"><b>More examples help
-      cumulatively; no single step is decisive.</b> Measured three independent times now.
+      cumulatively; no single step is decisive.</b> Measured four independent times now.
       Going 1→10 buys <span class="mono">+0.123</span> on average — unambiguous, well clear
       of the <span class="mono">0.043</span> noise floor. But the individual steps straddle
       it: 1→3 came in at <span class="mono">+0.067, +0.067, +0.042</span> across the three
@@ -773,14 +782,19 @@
       <p class="note" style="margin:0 0 10px;font-size:12.5px">Nobody has published this for
       few-shot bioacoustics. Our honest answer: it isn't resolved yet either.</p>
       <div id="stratChart"></div>
-      <p class="note" style="margin-top:10px;font-size:12.5px">Measured three independent
-      times, and the aggregate winner <em>changed</em> each time — <span class="mono">rated,
-      rated, random</span>. Spread across strategies (<span class="mono">0.068 / 0.073 /
-      0.079</span>) never separates from the run-to-run noise. What <em>is</em> stable is
+      <p class="note" style="margin-top:10px;font-size:12.5px">Measured four independent
+      times, and the aggregate winner is unstable — <span class="mono">rated, rated, random,
+      rated</span>. In one of those runs <span class="mono">rated</span> beat
+      <span class="mono">random</span> by <span class="mono">0.00004</span> AUC, which is a
+      coin flip, not a winner. The spread across strategies
+      (<span class="mono">0.068 / 0.073 / 0.079 / 0.084</span>) is smaller than the
+      <span class="mono">0.102</span> range four group means produce from noise alone at this
+      sample size, and a two-way fit gives <span class="mono">F(3,6) = 0.54</span> — below the
+      1.0 you would get from pure noise. So no strategy separates. What <em>is</em> stable is
       species-specific, not global: <span class="mono">diverse</span> is best for whbsho3 in
-      3/3 runs and <span class="mono">random</span> best for bcnher in 3/3, while
+      4/4 runs and <span class="mono">random</span> best for bcnher in 4/4, while
       <span class="mono">first</span> is worst for whbsho3 and <span class="mono">diverse</span>
-      worst for barswa in 3/3. So which five you pick clearly matters — but the right answer
+      worst for barswa in 4/4. So which five you pick clearly matters — but the right answer
       depends on the species, and no single strategy wins overall. We report that rather than
       naming whichever one happened to top the last run.</p>
     </div>
@@ -815,21 +829,31 @@
   <div class="grid g2" style="margin-top:15px">
     <div class="card"><div class="step">Contradicts the literature</div>
       <h3>PCEN beats log-Mel here</h3>
-      <p>Switching front-end costs <span class="mono">−0.107</span> AUC as a main effect
-      (d/SE −3.44, complete factorial), and log-Mel loses in every paired configuration
-      across three independent runs. The DCASE 2024 winner reported the opposite on
+      <p>Switching front-end costs <span class="mono">−0.093</span> AUC as a main effect
+      (d/SE −3.17, complete factorial, config-weighted), and log-Mel loses in
+      <b class="mono">11 of 12</b> paired species×config comparisons within that factorial
+      (the one exception: whbsho3 at logmel+hard-negatives, +0.012). The DCASE 2024 winner reported the opposite on
       <em>F1</em> — but the same literature shows PCEN winning on <em>precision</em>, and
       species discrimination is a precision-shaped problem. The right front-end depends on
       which question you are asking.</p></div>
     <div class="card"><div class="step">Did not transfer</div>
       <h3>The prototypical probe — now clearly rejected, not just borderline</h3>
       <p>Perch 2.0's own paper reports prototypical probing beating a linear probe by
-      <span class="mono">+0.078</span> mAP. Here it cost <span class="mono">−0.048</span> AUC
-      (d/SE −5.35 on the complete factorial — this cleared the noise floor outright; an
-      earlier partial run had it sitting right at the floor, borderline). Event F1 and false
-      alarms make the case just as clearly: FA/hr rose <b class="mono">8.2 → 27.8</b> on PCEN
-      and <b class="mono">3.2 → 37.0</b> on log-Mel. Three metrics, both front-ends, same
-      direction. Rejected.</p></div>
+      <span class="mono">+0.078</span> mAP. It does not transfer here — but <b>we first
+      published the wrong reason, and the AUC half of this case is now withdrawn — our
+      ninth retraction</b> (28 Aug 2026). We reported <span class="mono">−0.048</span> AUC at d/SE <span class="mono">−5.35</span>,
+      "clear of the noise floor". That averaged the wrong way: the baseline config is repeated
+      across three encoder seeds to measure the noise floor, so it carried 3× the rows of every
+      challenger and dominated the comparison. Counting each configuration once gives
+      <span class="mono">−0.023</span> at d/SE <span class="mono">−1.84</span> — which fails
+      <em>our own</em> stated bar that |d/SE| below 2 is not evidence. On AUC this probe is
+      not distinguishable from the baseline.</p>
+      <p>The rejection itself survives, on the evidence that was always the stronger half:
+      <b>false alarms</b>. FA/hr rose <b class="mono">8.2 → 27.8</b> on PCEN and
+      <b class="mono">3.2 → 37.0</b> on log-Mel in one run, and
+      <b class="mono">6.5 → 58.5</b> and <b class="mono">2.5 → 48.0</b> in an independent
+      fourth run — between 3× and 19×, both front-ends, both sessions, same direction.
+      Rejected on false-alarm rate, not on AUC.</p></div>
   </div>
 </div></section>
 
@@ -857,8 +881,13 @@
       <p class="note" style="margin-top:9px">A later, properly-ordered run measured the probe
       again at <span class="mono">−0.034</span> on a partial factorial — sitting right at the
       floor, borderline — then <span class="mono">−0.048</span> (d/SE −5.35) once the full
-      8-config design finished. Rejected on false-alarm rate throughout, regardless of where
-      the AUC number landed. Same conclusion, arrived at honestly three times.</p></div>
+      8-config design finished. <b>That last figure was itself wrong</b>, and is withdrawn:
+      it row-weighted a baseline that appears three times over. Correctly paired it is
+      <span class="mono">−0.023</span>, d/SE <span class="mono">−1.84</span>, inside the floor.
+      So the AUC number has now landed at "inside the floor" three separate ways, and the
+      probe was rejected on false-alarm rate throughout, regardless of where it landed. Same
+      conclusion, arrived at honestly — but we should have reached it without ever publishing
+      the −0.048.</p></div>
   </div>
 
   <div class="card tight" style="margin-top:15px">
@@ -1083,13 +1112,18 @@ const R={
     {label:'log-Mel + proto + hn',auc:.598,f1:.456,fa:28.8},
   ],
   // st: 'real' clears the cross-session floor · 'edge' sits at it · 'noise' is inside it.
-  // Prototypical probe upgraded from 'edge' to 'real' now the factorial is complete (was
-  // -0.034 on a partial run; -0.048, d/SE -5.35, on the complete one).
+  // CORRECTED 28 Aug 2026. These were row-weighted means, and the baseline config appears
+  // 3x (once per encoder seed, to measure the noise floor) while every challenger appears
+  // once -- so the baseline dominated the "off" arm and every effect was inflated. Counting
+  // each configuration once: proto -0.048 -> -0.023 (d/SE -5.35 -> -1.84, now INSIDE the
+  // floor and below this project's own |d/SE|>2 bar), hard negatives -0.044 -> -0.018
+  // (also inside), log-Mel -0.107 -> -0.093 (still clear of it). TimeFilterAug was measured
+  // in isolation, not through this averaging path, so it is unaffected.
   effects:[
     {label:'TimeFilterAug',v:.155,st:'real'},
-    {label:'log-Mel vs PCEN',v:.107,st:'real'},
-    {label:'Prototypical probe',v:.048,st:'real'},
-    {label:'Hard negatives',v:.044,st:'real'},
+    {label:'log-Mel vs PCEN',v:.093,st:'real'},
+    {label:'Prototypical probe',v:.023,st:'noise'},
+    {label:'Hard negatives',v:.018,st:'noise'},
   ],
 };
 let SP=0, MET='auc';
@@ -1423,9 +1457,9 @@ const ABL=[
  [16,'Support recordings leaking into held-out pool','silent under rated-shot selection','bug fixed'],
  [17,'Encoder trained on other target species','would have inflated every score','bug fixed'],
  [18,'TimeFilterAug (DCASE 2023 winner)','−0.155 AUC, both front-ends','did not transfer'],
- [19,'log-Mel front-end (DCASE 2024 winner)','−0.107 AUC main effect, complete factorial','contradicts literature'],
- [20,'Hard negatives (isolated re-test)','−0.044 AUC, FA/hr 8.2 → 12.2','rejected'],
- [21,'Prototypical probe (Perch 2.0 paper)','−0.048 AUC, FA/hr 8.2 → 27.8','did not transfer'],
+ [19,'log-Mel front-end (DCASE 2024 winner)','−0.093 AUC main effect, config-weighted','contradicts literature'],
+ [20,'Hard negatives (isolated re-test)','AUC −0.018 (inside floor); rejected on FA/hr 8.2 → 12.2','rejected'],
+ [21,'Prototypical probe (Perch 2.0 paper)','AUC −0.023 (inside floor); rejected on FA/hr, 3–19× in 2 runs','did not transfer'],
  [22,'Encoder-training variance, measured','0.025 AUC within a session','finding'],
  [23,'Cross-session noise floor, measured','0.035 AUC','finding'],
  [24,'Config ordering hid the proto arm','ran 6/16, all proto configs last','bug fixed'],
@@ -1443,12 +1477,18 @@ const ABL=[
  [36,'Decoy difficulty sweep (hard vs medium vs random)','easy decoys would have bought +0.039 AUC','confirmed'],
  [37,'"Verification gain depends on decoy difficulty"','+0.257 hard vs +0.220 random, inside noise','no real effect'],
  [38,'Our own decoy sanity check’s premise','random draws catch a top-4 decoy ~45% of the time','bug fixed'],
- [39,'Stage-1 specificity IS SNR-dependent (control)','0.499 → 0.432 while verified stays flat','finding'],
+ [39,'"Stage-1 specificity IS SNR-dependent" (control)','0.067 change vs stage-1’s own 0.078 bound — unresolved','retracted'],
  [40,'"One shot is clearly not enough" phrasing','1→3 step ranged 0.042–0.067 across 3 runs','softened'],
  [41,'Fusing stage-1 and verifier scores','every mix scores worse than verifier alone','no real gain'],
  [42,'Recall-matched false-alarm control (thr_r90)','peak recall 0.778, threshold never binds; 237.9 vs 236.9','unusable'],
  [43,'Call stereotypy as a difficulty predictor','best-of-6 permutation p=0.25; r 0.59→0.36 without whbsho3','retracted'],
  [44,'"Largest per-species move 0.009"','actual max across 3 sessions is 0.015','corrected'],
+ [45,'Noise bound paired to the wrong series in 3 of 4 SNR tests','stage-1 test bounded by the verifier’s sd, 1.7× too tight','bug fixed'],
+ [46,'Fourth independent centrepiece replication','0.588 → 0.753, gain +0.165; max per-species move 0.013','confirmed'],
+ [47,'"The aggregate shot-strategy winner changed each time"','4th run returned to rated; sequence rated/rated/random/rated','corrected'],
+ [48,'Shot-strategy spread compared against the wrong noise figure','conclusion holds on a proper two-way fit, F(3,6)=0.54','corrected'],
+ [49,'Ablation main effects row-weighted a 3×-repeated baseline','proto −0.048→−0.023, hard-neg −0.044→−0.018, both now inside the floor','retracted'],
+ [50,'"Prototypical probe cleared the noise floor outright"','d/SE −5.35 → −1.84; rejection now rests on false alarms alone','retracted'],
 ];
 $('#ablTbl').innerHTML=ABL.map(([n,m,e,v])=>{
   const cls=(v==='adopted'||v==='confirmed'||v==='new lead')?'ok':
