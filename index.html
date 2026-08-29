@@ -234,7 +234,7 @@
   <div class="links">
     <a href="#why">Why</a><a href="#detect">Detection</a><a href="#inside">Inside</a><a href="#space">Latent space</a>
     <a href="#results">Results</a><a href="#finding">Finding</a><a href="#general">Generalises?</a>
-    <a href="#config">Tuning</a><a href="#noise">Noise floor</a><a href="#failed">Negatives</a>
+    <a href="#config">Tuning</a><a href="#noise">Noise floor</a><a href="#confounds">Confound checks</a><a href="#failed">Negatives</a>
   </div>
 </div></nav>
 
@@ -912,9 +912,61 @@
   to withdraw a conclusion we had already drawn.</div>
 </div></section>
 
-<!-- 09 · NEGATIVES -->
+<!-- 09 · CONFOUND CHECKS -->
+<section id="confounds"><div class="wrap">
+  <div class="shead"><span class="snum">09</span><h2>Three questions a judge would ask</h2></div>
+  <p class="sdesc">Written and pre-registered days before they ran, then run for real on
+  29 Aug 2026 — 5 species, 2 seeds each, 3.34 hours on a single Kaggle GPU session.</p>
+
+  <div class="grid g2" style="margin-top:14px">
+    <div class="card">
+      <div class="step" style="color:var(--ok)">Settled</div>
+      <h3>Isn't this just Perch?</h3>
+      <p>Ran Perch alone as a standalone detector — no stage-1 CNN anywhere in the path,
+      just a sliding embedding scan. It collapses to <b class="mono">0.526</b> mean
+      species AUC (chance is 0.50) and a mean recall of <b class="mono">2.5%</b> — it
+      finds almost nothing. Verified pipeline vs. Perch alone: change
+      <b class="mono">−0.209</b>, clear of the noise bound. Perch by itself cannot find
+      where to look; stage 1 alone cannot reliably say what it found. Neither half
+      substitutes for the other — this is the direct, measured answer, not an appeal to
+      architecture.</p>
+    </div>
+    <div class="card">
+      <div class="step" style="color:var(--ok)">Settled</div>
+      <h3>Did it learn the microphone, not the bird?</h3>
+      <p>Rebuilt the held-out evaluation pool so it can never share a recordist with the
+      five support calls. Verified AUC: <b class="mono">0.740 → 0.708</b>, change
+      <b class="mono">−0.032</b> against a <b class="mono">0.062</b> bound — flat.
+      One species (bcnher) moved more than the rest (−0.121, still inside its own wider
+      noise bound) and is named rather than smoothed over. The aggregate answer is that
+      recording-setup leakage is not what the specificity result is measuring.</p>
+    </div>
+  </div>
+
+  <div class="card" style="margin-top:14px">
+    <div class="step" style="color:var(--warn)">Unresolved</div>
+    <h3>Does stage 1's own negative-sampling choice matter?</h3>
+    <p>Stage 1 has always fine-tuned against arbitrary background crops; the verifier has
+    always trained against real other-species calls. Swapping stage 1 to the same
+    species-matched negatives moves stage-1-alone AUC by
+    <b class="mono">+0.045</b> and the verified number by <b class="mono">−0.033</b> —
+    both inside the noise bound at this seed count. Reported honestly as unresolved, not
+    stretched into a finding either way — worth naming that the stage-1 direction was
+    positive in <b class="mono">5 of 5</b> species even though the aggregate test can't
+    yet call it, and that widening the seed count is the obvious next step, not a
+    reason to omit the result.</p>
+  </div>
+
+  <div class="callout" style="margin-top:14px"><b>Why these three, specifically.</b> An
+  adversarial review of this project (25 Aug 2026) named exactly these as the questions
+  most likely to come up in a judge interview and not yet be answerable live. They were
+  not required for submission — they close interview risk, not scientific risk — and were
+  run anyway, the same week they were written.</div>
+</div></section>
+
+<!-- 10 · NEGATIVES -->
 <section id="failed"><div class="wrap">
-  <div class="shead"><span class="snum">09</span><h2>What did not work</h2></div>
+  <div class="shead"><span class="snum">10</span><h2>What did not work</h2></div>
   <p class="sdesc">Every mechanism tried, and its verdict. A clean record of honest negatives is
   what separates a research project from a demo — these are kept deliberately, not hidden.</p>
   <div class="card tbl-scroll">

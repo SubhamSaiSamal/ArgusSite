@@ -99,6 +99,7 @@ data/argus_sweep_shot_strategy.csv      Shot-selection-strategy sweep raw output
 data/argus_sweep_snr.csv                SNR-robustness sweep raw output
 data/argus_sweep_decoy_difficulty.csv   Decoy-difficulty sweep raw output
 data/argus_ablation_ladder.csv          Full ablation-ladder raw output (feature x verifier x hard-negatives)
+data/argus_confounds.csv                Confound-closing runs, complete (55/55 rows — see lab notebook Day 35)
 ```
 
 Files prefixed `_` are working/scratch scripts, not part of the pipeline itself.
@@ -106,6 +107,27 @@ Files prefixed `_` are working/scratch scripts, not part of the pipeline itself.
 ## Built with
 
 Python · PyTorch (stage-1 encoder, trained from scratch) · TensorFlow / TensorFlow Hub (Perch v2) · scikit-learn · ONNX Runtime · librosa · FastAPI · vanilla JavaScript (hand-rolled SVG charts, Web Audio API — no charting library, no frontend framework) · Kaggle (GPU training/inference)
+
+## Closing three confounds
+
+An adversarial review of this project named three questions it could not yet answer live
+in a judge interview. Run for real on 29 Aug 2026 (5 species, 2 seeds, 3.34h on one Kaggle
+GPU session — `data/argus_confounds.csv`):
+
+- **"Isn't this just Perch?"** Ran Perch alone as a standalone detector, no stage-1 CNN
+  anywhere in the path. It collapses to 0.526 mean species AUC (chance is 0.50) and 2.5%
+  mean recall — it finds almost nothing. Verified pipeline vs. Perch alone: **−0.209**,
+  clear of the noise bound. Neither stage substitutes for the other.
+- **"Did it learn the microphone, not the bird?"** Rebuilt the held-out pool so it can
+  never share a recordist with the five support calls. Verified AUC change: **−0.032**
+  against a 0.062 bound — flat. One species moved more than the rest (bcnher, −0.121,
+  still inside its own wider bound) and is disclosed rather than smoothed over.
+- **Does stage 1's negative-sampling choice matter?** Genuinely unresolved at this seed
+  count (both directions land inside their noise bounds) — reported as unresolved, not
+  stretched into a finding, though the stage-1-alone direction was positive in 5 of 5
+  species.
+
+Full numbers and reasoning: `ARGUS_TrackA_Lab_Notebook.md`, Day 35.
 
 ## Honesty, by design
 

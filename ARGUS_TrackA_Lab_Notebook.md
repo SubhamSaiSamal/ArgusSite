@@ -2929,6 +2929,127 @@ Cell 5's own timing print after the first (species, seed) pair before walking aw
 
 ---
 
+## Day 35 — 2026-08-29 — Cell 5 actually ran. All three confound-closing questions answered.
+
+`valkblox/notebook669705fad7`, T4 x2, **succeeded in 12,015.8s = 3.34h** — inside the 3.76h
+projection, 8.7h under the 12h ceiling. Ran exactly as planned: setup + encoders (566s),
+`SKIP_SWEEPS`/`SKIP_LADDER` both fired correctly and skipped instantly, and Cell 5 — the
+one thing that mattered — ran to completion on all 5 `CONFOUND_SPECIES`
+(whbsho3/bcnher/barswa/bkwsti/blrwar1), writing 55 rows to `argus_confounds.csv`.
+
+**Data honesty note:** browser-scraped the raw CSV from Kaggle's Output tab the same way
+as every other raw file this project ships. Captured **49 of 55 rows verbatim** — the
+Output preview's virtualized table would not render further no matter how it was scrolled,
+and rather than fight it further or fabricate the missing 6 (blrwar1's full row set, plus
+bkwsti's `disjoint` arm), those are left out of the repo's `argus_confounds.csv`, which
+ships as a genuine 49-row partial rather than a padded 55-row fake. Every number quoted
+below was independently recomputed from those 49 real rows and checked against the
+console's own printed aggregates — every one matched to 4 decimal places. Re-scraping the
+remaining 6 rows (or downloading the file directly) is a clean follow-up, not urgent: the
+aggregate verdicts already agree on the full 5-species console figures where the partial
+data only covers 3-4 species.
+
+**Update, same day:** the missing 6 rows were recovered. The failure above was in how the
+table was being read, not in what was rendered — `get_page_text` and mouse-wheel scroll
+both cap out reading the page's plain-text content, but the output table is a real ARIA
+`table` element, and walking it directly (`read_page` on that node, keyboard `Page Down`
+to actually advance the virtualization rather than wheel-scroll at a guessed coordinate)
+reached a literal **"No more data to show"** marker — the authoritative signal the whole
+table had rendered. One wrinkle: that structural read silently dropped one constant
+column (`n_seeds`, always `2`) from the row data and one header label (`f1`) from the
+header row — some interaction between the grid's frozen/scrolling column split and how it
+exposes itself to the accessibility tree, not a data problem. Reconstructed the 6 rows by
+shifting the field mapping accordingly, then checked all three new species-level AUCs
+against the console's own independently-printed numbers (bkwsti disjoint 0.837, blrwar1
+shared 0.626, blrwar1 disjoint 0.610) — exact matches. `argus_confounds.csv` is now the
+genuine, complete 55-row file, and the P3 verdict was re-derived on all 5 species rather
+than the 3-4 the partial covered: **shared 0.740 → disjoint 0.708, change −0.032, bound
+0.062, FLAT** — identical to what the partial data and the console already agreed on. No
+finding changed; the gap is just closed now instead of flagged.
+
+### P1 — Perch alone as a standalone detector: it loses, clearly
+
+```
+arm            AUC     F1
+s1           0.536  0.684
+ver          0.735  0.726
+perch_alone  0.526  0.047
+```
+
+Verified vs. perch-alone: change **−0.209**, bound 0.031, margin +0.178 → **FALLS, clear
+of the noise bound.** This is the cleanest of the three results. Perch scanning the
+recording directly, with no stage-1 CNN in the loop at all, collapses to nowhere above
+chance on species discrimination (mean AUC 0.526) and to a **mean recall of 2.5%** —
+precision when it does fire is middling (0.356), but it essentially finds almost nothing.
+Every one of the 5 species shows the same pattern (F1 0.031–0.070, recall 1.7%–3.8%,
+**false-alarm rate exactly 0.0/hr in all 5** — not a bug pattern, a genuinely
+under-confident detector that almost never clears its own threshold).
+
+**Why, plausibly:** Perch's window is 5 seconds; a planted call is 1 second. The sliding
+scan's score profile across that 5-second span is not sharply peaked on the true call
+position — Perch was trained to classify whatever's in a whole clip, not to localise
+within one, so nearby positions score similarly and the argmax lands wherever it lands,
+often outside the ±0.7s tolerance `IOU_THR=0.30` requires against a 1s truth span. This is
+an interpretation of the number, not a second measurement — stated as one.
+
+**What this settles:** the two-stage design is not redundant with either half alone.
+Perch alone cannot find where to look; stage-1 alone (§ earlier centrepiece) cannot
+reliably say what it found. This is the direct, measured answer to "isn't this just
+Perch?" — no, because Perch alone measurably fails at this exact task.
+
+### P2 — species-matched stage-1 negatives: genuinely unresolved, but not silent
+
+```
+                    background  species-matched   change   bound   margin
+stage-1 alone AUC        0.530            0.576   +0.045   0.039   +0.006  TOO CLOSE
+verified AUC              0.725            0.692   -0.033   0.042   -0.009  TOO CLOSE
+```
+
+Both read "too close to call" at `CONFOUND_SEEDS=(7,8)` — exactly the honest outcome the
+pre-registration allowed for ("no strong prior on whether the gain propagates to the
+verified number"). Worth reporting past the bare verdict: **stage-1-alone AUC improves
+with species-matched negatives in 5 of 5 species** (+0.022 to +0.083) — a unanimous
+direction that the noise-bound test correctly still calls unresolved at n=5/2 seeds, not
+a contradiction. The verified number is messier: 4 of 5 species fall (−0.022 to −0.110),
+one rises (blrwar1, +0.051). A plausible reading, stated as speculation and not fact: the
+verifier already handles what stage-1 was missing, so making stage-1 pickier about
+species-matched confusers doesn't help downstream and may cost some recall the verifier
+was relying on. Needs more seeds before either number is claimed as a direction, and the
+lab notebook is where that claim boundary is being drawn, not the public site.
+
+### P3 — recordist-disjoint held-out split: flat, the concern is closed
+
+```
+                stage-1 alone      verified
+shared_ok            0.531          0.740
+disjoint             0.531          0.708
+change              -0.000         -0.032
+bound                 0.035          0.062
+verdict               FLAT           FLAT
+```
+
+"Did it learn the microphone, not the bird?" — no. Per-species verified moves:
+whbsho3 −0.007, barswa −0.036, bkwsti +0.022 (missing from the partial CSV but printed on
+console), blrwar1 −0.016, and **bcnher −0.121** — the one real outlier, worth naming
+specifically even though the properly-computed aggregate bound (0.062, driven by bcnher's
+own high seed-to-seed variance, `auc_sd`=0.156 on its disjoint arm) comfortably absorbs
+it. bcnher's held-out pool barely shrank under the disjoint constraint (495→485 recordings,
+220 distinct recordists among them) — this is not a small-sample artefact, and it is
+larger than the median other species' move. Reported honestly rather than smoothed away:
+the aggregate is FLAT and the concern this run existed to test is closed, but bcnher's own
+number would benefit from more seeds if this result is ever revisited.
+
+### What changes on the public site / README / deck
+
+All three "still owed" mentions — the explanation doc §4.8/§6, the README's known-gaps
+note, and the pitch deck's Limits slide — currently say these are written but unrun. They
+are run now. Site, README, `ARGUS_Project_And_Code_Explained.md`, and `ARGUS_Deck.pptx`
+all need the actual verdicts substituted in, same day, per the project's own standing
+rule. Numbers above are the ones to use; every one was independently recomputed from the
+raw CSV before being written anywhere public.
+
+---
+
 ## Standing notes for future entries
 
 - Add a new dated entry per work session, oldest to newest — don't overwrite previous entries.
