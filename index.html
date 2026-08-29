@@ -296,7 +296,15 @@
       Ghats' higher hills. It has <b class="mono">22</b> recordings in BirdCLEF 2024,
       against 500 for most other species in this study. Nothing close to what a
       standard deep-learning pipeline expects to train on — and that scarcity is not an
-      edge case, it's the normal condition for the species people most need to monitor.</p></div>
+      edge case, it's the normal condition for the species people most need to monitor.
+      <b>The other nine species having 500 recordings doesn't loosen the test</b> — every
+      target, this one included, is still given only five. Those nine exist so the method
+      can be checked against held-out data at all: five recordings alone leave nothing to
+      test against, so a genuine one-species anecdote can't be told apart from a fluke. This
+      is the same design every few-shot benchmark uses, including the one this project's
+      protocol is built on (Nolasco et al. 2023, DCASE Task 5) — restrict what the model is
+      <em>shown</em>, not what exists in the world, then hold the rest back to check whether
+      five examples were actually enough.</p></div>
     <div class="card"><div class="step">The question</div><h3>Can five examples do what a conservationist actually needs?</h3>
       <p>Not "can a model learn a new species from five calls" alone — that's the easy
       half. The question this project actually asks: <b>can it tell that species apart
