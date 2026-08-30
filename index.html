@@ -275,7 +275,7 @@
     <div><b>5</b><span>Labelled examples</span></div>
     <div><b>40</b><span>Species pretrained</span></div>
     <div><b>1536</b><span>Verifier dimensions</span></div>
-    <div><b>0.749</b><span>Species AUC · verified · 10 species · 4&times; replicated</span></div>
+    <div><b>0.751</b><span>Species AUC · verified · 10 species · 4&times; replicated</span></div>
     <div><b>10/10</b><span>Species improved by verification</span></div>
   </div>
 </div></div>
@@ -556,11 +556,11 @@
       around, and not a randomly chosen case. We say that plainly rather than let it be found.</p></div>
     <div class="card"><div class="step">Fix</div><h3>Verification lifts every single one</h3>
       <p>Passing every stage-1 candidate to a Perch-embedding verifier lifts mean species AUC
-      to <b class="mono" style="color:var(--ok)">0.749</b> — a gain of
-      <b class="mono">+0.161</b> (SE 0.020, d/SE 8.13), and every one of the ten gains clears
+      to <b class="mono" style="color:var(--ok)">0.751</b> — a gain of
+      <b class="mono">+0.165</b> (SE 0.019, d/SE 8.83), and every one of the ten gains clears
       the encoder-training noise floor on its own. False alarms on audio with no known target fall
       sharply throughout — mean <b class="mono">54.0 → 13.4</b> per hour, a
-      <b class="mono">4×</b> reduction (best case 72.5 → 1.5; worst, comkin1, only 78 → 54). This has now been run four independent times — gains of
+      <b class="mono">4×</b> reduction (best case 55.2 → 0.7; worst, comkin1, only 78 → 54). This has now been run four independent times — gains of
       <b class="mono">+0.165, +0.166, +0.161, +0.165</b> — with the largest per-species move
       between any two sessions at <b class="mono">0.015</b>, and most species inside
       <b class="mono">0.010</b>. The fourth run, on a different machine nine days after the
@@ -594,7 +594,7 @@
 
   <div class="callout warn" style="margin-bottom:12px"><b>Read this before you ask "so isn't
   this just Perch?" — because the honest answer is more interesting than a defence.</b>
-  That <span class="mono">0.749</span> ranks candidates by the <em>verifier's</em> score
+  That <span class="mono">0.751</span> ranks candidates by the <em>verifier's</em> score
   alone. We tested six ways of combining the two stages' scores, and <b>every rule that mixes
   them scores worse</b> than throwing stage 1's opinion away at ranking time:
   <span class="mono">v</span> alone <b class="mono">0.751</b>,
@@ -916,7 +916,8 @@
 <section id="confounds"><div class="wrap">
   <div class="shead"><span class="snum">09</span><h2>Three questions a judge would ask</h2></div>
   <p class="sdesc">Written and pre-registered days before they ran, then run for real on
-  29 Aug 2026 — 5 species, 2 seeds each, 3.34 hours on a single Kaggle GPU session.</p>
+  29 Aug 2026 — 5 species, 2 seeds each, 3.34 hours on a single Kaggle GPU session.
+  The third came back too close to call and was re-run at six seeds on 30 Aug.</p>
 
   <div class="grid g2" style="margin-top:14px">
     <div class="card">
@@ -944,17 +945,17 @@
   </div>
 
   <div class="card" style="margin-top:14px">
-    <div class="step" style="color:var(--warn)">Unresolved</div>
+    <div class="step" style="color:var(--ok)">Settled</div>
     <h3>Does stage 1's own negative-sampling choice matter?</h3>
     <p>Stage 1 has always fine-tuned against arbitrary background crops; the verifier has
-    always trained against real other-species calls. Swapping stage 1 to the same
-    species-matched negatives moves stage-1-alone AUC by
-    <b class="mono">+0.045</b> and the verified number by <b class="mono">−0.033</b> —
-    both inside the noise bound at this seed count. Reported honestly as unresolved, not
-    stretched into a finding either way — worth naming that the stage-1 direction was
-    positive in <b class="mono">5 of 5</b> species even though the aggregate test can't
-    yet call it, and that widening the seed count is the obvious next step, not a
-    reason to omit the result.</p>
+    always trained against real other-species calls. Came back too close to call at two
+    seeds, so it was re-run at six: swapping stage 1 to species-matched negatives leaves
+    stage-1-alone AUC <b class="mono">flat</b> (<b class="mono">+0.034</b>, inside its
+    bound) but makes the <b>verified pipeline worse</b> —
+    <b class="mono">−0.050</b>, negative in <b class="mono">5 of 5</b> species — the
+    opposite of what the published literature predicts for harder negatives. Consistent
+    with the ablation ladder's independent finding that hard-negative mining also hurts
+    in this five-shot, short-fine-tune regime.</p>
   </div>
 
   <div class="callout" style="margin-top:14px"><b>Why these three, specifically.</b> An

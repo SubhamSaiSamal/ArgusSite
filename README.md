@@ -22,10 +22,10 @@ Every number below is read directly from the actual pipeline output, not illustr
 
 | | Stage 1 alone (matching) | + Verification (Perch) |
 |---|---|---|
-| Mean species-discrimination AUC, 10 species | 0.587 | **0.749** |
+| Mean species-discrimination AUC, 10 species | 0.585 | **0.751** |
 | Species improved by verification | — | **10 / 10** |
-| Confidence (Δ / SE) | — | **8.15** |
-| False alarms / hour, best case | up to 90.8 | as low as **1.5** |
+| Confidence (Δ / SE) | — | **8.83** |
+| False alarms / hour, best case | up to 78.8 | as low as **0.7** |
 | Independent full replications | — | **4** (gains +0.165, +0.166, +0.161, +0.165) |
 
 0.50 AUC means the model cannot tell the target species from an acoustically similar decoy at all — a coin flip. Stage 1 alone lands there or close to it for several species; adding a Perch-embedding verification step lifts **every single one of the ten species tested**, by a margin larger than the measured run-to-run noise floor in every case. That last part matters more than it sounds — we measured the floor directly (the same configuration, run twice, scored 0.696 and 0.731 from GPU non-determinism alone) specifically so we wouldn't claim a result that was actually just noise.
@@ -111,8 +111,7 @@ Python · PyTorch (stage-1 encoder, trained from scratch) · TensorFlow / Tensor
 ## Closing three confounds
 
 An adversarial review of this project named three questions it could not yet answer live
-in a judge interview. Run for real on 29 Aug 2026 (5 species, 2 seeds, 3.34h on one Kaggle
-GPU session — `data/argus_confounds.csv`):
+in a judge interview. Run for real on 29 Aug 2026 (`data/argus_confounds.csv`):
 
 - **"Isn't this just Perch?"** Ran Perch alone as a standalone detector, no stage-1 CNN
   anywhere in the path. It collapses to 0.526 mean species AUC (chance is 0.50) and 2.5%
@@ -122,10 +121,12 @@ GPU session — `data/argus_confounds.csv`):
   never share a recordist with the five support calls. Verified AUC change: **−0.032**
   against a 0.062 bound — flat. One species moved more than the rest (bcnher, −0.121,
   still inside its own wider bound) and is disclosed rather than smoothed over.
-- **Does stage 1's negative-sampling choice matter?** Genuinely unresolved at this seed
-  count (both directions land inside their noise bounds) — reported as unresolved, not
-  stretched into a finding, though the stage-1-alone direction was positive in 5 of 5
-  species.
+- **Does stage 1's negative-sampling choice matter?** Settled 30 Aug at six seeds after
+  coming back too close to call at two: species-matched negatives leave stage-1-alone
+  **flat** (+0.034, inside its bound) but make the verified pipeline **worse**
+  (−0.050, negative in 5 of 5 species) — the opposite of what the published literature
+  predicts. Consistent with the ablation ladder's independent finding that hard-negative
+  mining also hurts in this regime.
 
 Full numbers and reasoning: `ARGUS_TrackA_Lab_Notebook.md`, Day 35.
 
