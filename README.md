@@ -1,141 +1,122 @@
-# ARGUS
+# ARGUS: Learning a Bird from Five Calls
 
-**Few-shot bioacoustic detection for a threatened Western Ghats bird — learn a species from five examples, then find it in hours of unlabelled forest audio.**
+Few-shot bioacoustic detection for a threatened Western Ghats bird. ARGUS learns a new species from five example calls, then checks each detection separately to make sure it really is that species and not a bird that sounds like it.
 
-**[Live demo →](#) <!-- TODO: add your Vercel URL here -->**
+- **Live site:** https://argussite.vercel.app/
+- **Paper:** [ARGUS_Research_Paper.pdf](submission/ARGUS_Research_Paper.pdf) (13 pages) and an [extended version](submission/ARGUS_Research_Paper_extended.pdf) (26 pages, every experiment in full)
+- **Synopsis:** [ARGUS_IRIS_Synopsis.pdf](submission/ARGUS_IRIS_Synopsis.pdf) (2 pages)
+- **Lab notebook:** [ARGUS_TrackA_Lab_Notebook.md](ARGUS_TrackA_Lab_Notebook.md)
 
----
+By Subham Sai Samal and Vikramzharis, guided by Mrs. Valarmathy. IRIS National Fair 2026, Earth & Environmental Sciences.
 
-## Why this exists
+## Why
 
-The Western Ghats is one of the eight hottest biodiversity hotspots on Earth — and one of the least acoustically monitored. *Sholicola albiventris* (White-bellied Sholakili) — IUCN **Near Threatened** (2024 assessment), and High Conservation Concern under *State of India's Birds* — is the species this project is built around, and it has almost no labelled audio anywhere: 22 recordings in BirdCLEF 2024, nothing close to what a normal deep-learning pipeline expects to train on.
+The Western Ghats is one of Earth's eight hottest biodiversity hotspots and one of its least acoustically monitored. The White-bellied Sholakili (*Sholicola albiventris*), a Near Threatened endemic, has 22 recordings in BirdCLEF 2024, while most of the other species in our study have 500. Detectors usually need hundreds to thousands of examples, so the birds that most need monitoring are the hardest to monitor.
 
-That's not a special case. Most of the species conservationists actually care about are rare *because* they're rare — which means the standard playbook (thousands of labelled examples per class) is unusable exactly where it matters most. ARGUS asks a narrower, more honest question instead: **can a model learn a new species from five example calls, and can it tell that species apart from others that sound almost the same?**
-
-The answer turned out to be more interesting than a clean yes. A model that reliably notices "a bird called here" can still carry almost no information about *which* bird — and that gap is invisible to the metrics people normally report. Finding that gap, measuring it properly, and fixing it is what this project actually is.
-
-## The finding
-
-Every number below is read directly from the actual pipeline output, not illustrative — see [`ARGUS_TrackA_Lab_Notebook.md`](ARGUS_TrackA_Lab_Notebook.md) for the full dated engineering log and [`argus_multispecies_results.csv`](data/argus_multispecies_results.csv) for the raw data behind every chart.
-
-<img src="assets/per_species_auc.png" alt="Per-species AUC before and after verification, all 10 species" width="720">
-
-| | Stage 1 alone (matching) | + Verification (Perch) |
-|---|---|---|
-| Mean species-discrimination AUC, 10 species | 0.585 | **0.751** |
-| Species improved by verification | — | **10 / 10** |
-| Confidence (Δ / SE) | — | **8.83** |
-| False alarms / hour, best case | up to 78.8 | as low as **0.7** |
-| Independent full replications | — | **4** (gains +0.165, +0.166, +0.161, +0.165) |
-
-0.50 AUC means the model cannot tell the target species from an acoustically similar decoy at all — a coin flip. Stage 1 alone lands there or close to it for several species; adding a Perch-embedding verification step lifts **every single one of the ten species tested**, by a margin larger than the measured run-to-run noise floor in every case. That last part matters more than it sounds — we measured the floor directly (the same configuration, run twice, scored 0.696 and 0.731 from GPU non-determinism alone) specifically so we wouldn't claim a result that was actually just noise.
-
-<img src="assets/false_alarms.png" alt="False alarm rate before and after verification, all 10 species" width="720">
-
-On audio with **no known target present**, verification cuts false alarms from a mean of **54.0/hr to 13.4/hr — a 4× reduction** — the number that actually matters if a person is the one checking every alert. Two honest caveats we'd rather state than have found: these beds are real Western Ghats soundscapes, not silence, so any genuinely wild target call in them is being counted against us (every figure here is an upper bound); and our recall-matched control is unusable at this operating range — peak recall anywhere in the run is 0.778, so the 90%-recall threshold never binds and the two arms come back statistically indistinguishable at that operating point (237.9 vs 236.9/hr). The 4× reduction is measured at the best-F1 threshold, and that is the only false-alarm claim the data supports.
-
-<img src="assets/shot_count.png" alt="Species AUC as a function of number of labelled examples" width="640">
-
-The project's whole premise is "five examples." We tested whether that's actually the right number rather than assuming it, three separate times. Going from 1 to 10 examples buys **+0.123** AUC on average — unambiguous, well clear of the measured noise floor. But no *individual* step is: the 1→3 jump came in at +0.067, +0.067 and +0.042 across the three runs, straddling the 0.043 floor rather than clearing it. An earlier version of this README said "one example is clearly not enough" — that was firmer than three runs support, and it has been softened rather than left standing.
-
-**What we also found: four published techniques didn't transfer.** A DCASE-2023-winning augmentation, a DCASE-2024-winning front-end, hard-negative mining, and the prototypical-probe design from Google's own Perch 2.0 paper were each tested against the measured noise floor. All four made things worse in this five-shot, short-fine-tune regime — the untouched baseline beat every one of them. We kept that result rather than quietly dropping the experiments that didn't work.
-
-**The sharpest version of the finding: the metric the field uses can't see it.** Scored the same detections, on the same recordings, three ways — average precision (what's normally reported) actually *falls* after verification (0.611 → 0.604, only 4/10 species improved), while species-discrimination AUC rises by a third of its range (0.585 → 0.751, 10/10 improved). Rank all six of our scoring rules by AP and the verified pipeline comes *last*; rank them by species AUC and it comes *first*. A team optimising the field's default metric would silently select the least species-specific model on offer. That gap between what AP sees and what actually happened is this project's real contribution — the pipeline is the instrument it was measured with.
+We asked two questions. Can a model learn a new species from five calls? And can it tell that species apart from the birds that sound most like it, instead of just noticing that some bird called?
 
 ## How it works
 
 ```
-5 example recordings
-        │
-        ▼
-┌────────────────────┐      ┌──────────────────────┐
-│  Stage 1 — propose  │ ───▶ │  Stage 2 — verify     │ ───▶ confirmed detection
-│  Custom CNN,        │      │  Google Perch v2      │
-│  prototypical        │      │  embeddings + a       │
-│  few-shot, fine-     │      │  trained classifier   │
-│  tuned per clip      │      │                       │
-└────────────────────┘      └──────────────────────┘
-   fast, high recall,           slower, catches what
-   weak on species ID           stage 1 gets wrong
+5 example calls
+      |
+      v
++----------------------+      +-----------------------+
+| Stage 1: find        | ---> | Stage 2: check        | ---> detection
+| small CNN, trained   |      | Google Perch v2       |
+| from scratch, tuned  |      | embeddings + a small  |
+| on the 5 calls       |      | classifier            |
++----------------------+      +-----------------------+
+  fast, finds calls,            slower, decides
+  weak on species               which species
 ```
 
-- **Stage 1** is a small CNN trained from scratch on 40 non-target species (prototypical-network style), then fine-tuned in seconds on the five labelled examples for whatever species you're pointing it at. It's fast and rarely misses a candidate — but on its own it barely knows *which* bird it heard.
-- **Stage 2** takes every candidate stage 1 flags, embeds it with Google's Perch v2, and scores it with a classifier trained on the same five examples. This is what recovers species identity.
+- **Stage 1** is a small convolutional network (about 445,000 parameters) trained from scratch on 40 other species and fine-tuned for 250 steps on the five calls. It finds candidate calls but knows little about which species made them.
+- **Stage 2** embeds each candidate with Google's Perch v2 and scores it with a logistic-regression classifier trained on the same five calls. This is what tells species apart.
+- **Testing:** real target calls are planted into real Western Ghats forest recordings, so every answer is known. Each target is tested against the four species that sound most like it, picked automatically by acoustic similarity.
 
-Decoy species for testing are picked automatically by acoustic similarity in Perch's own embedding space — the four *hardest*, most confusable species, not an easy set chosen to flatter the result.
+## Results
 
-## Try it live
+<img src="assets/per_species_auc.png" alt="Species-discrimination AUC per species, before and after verification" width="720">
 
-The demo (`site/index.html`) is a single-file, no-framework web app that connects to a live model running on Kaggle:
+| | Stage 1 alone | With verification |
+|---|---|---|
+| Mean species-discrimination AUC, 10 species | 0.585 | **0.751** |
+| Species improved | | **10 / 10** |
+| Gain compared with measured run-to-run noise (0.032) | | **5.2×** |
+| False alarms per hour on audio with no target | 54.0 | **13.4** |
+| Independent full replications | | **4** (gains +0.165, +0.166, +0.161, +0.165) |
 
-- Record straight from your microphone in the browser, or upload a clip
-- Runs the real two-stage pipeline, not a canned response
-- Every chart on the results pages — including the ones above — is real data from the runs in this repo, rendered interactively, not static images
+AUC of 0.5 means guessing and 1.0 is perfect. We measured the run-to-run noise of our own pipeline (0.032) and only count differences larger than that.
 
-To run your own backend: open [`ARGUS_Kaggle_Notebook.ipynb`](ARGUS_Kaggle_Notebook.ipynb) on Kaggle, attach the BirdCLEF 2024 competition data and a Perch v2 model, enable GPU + Internet, and run the cells in order. It exposes a public URL via Cloudflare Tunnel that the demo site connects to.
+**The standard test cannot see species mix-ups.** The usual detection measure, average precision, barely moves with verification (0.611 to 0.604). Ranked by that measure, our best configuration comes last of six; ranked by species-discrimination AUC, it comes first.
 
-## Repository layout
+<img src="assets/false_alarms.png" alt="False alarms per hour before and after verification, per species" width="720">
+
+**Other findings**
+
+- **Five examples is a sensible choice, not a magic number.** Verified AUC is 0.680 with one example, 0.720 with three, 0.726 with five and 0.758 with ten. Only the step from one to three clears the noise floor.
+- **Quiet calls are missed more often, but the ones that are found are identified just as well.**
+- **Four published techniques did not help** in this five-shot setting. Our untouched baseline beat all of them.
+- **Three alternative explanations were tested and ruled out:**
+  - Perch alone reaches only 0.526 AUC and 2.5% recall.
+  - Testing only on different recordists changes the result by −0.032, inside its 0.062 noise bound.
+  - Harder negative examples made the pipeline worse, in 5 of 5 species.
+- **Removing Perch does not work yet.** Distilling it into the small network (642,688 parameters, about 19 times smaller) cost 0.136 AUC on average and dropped the study species to chance (0.511). Widening the student eightfold did not help. We report this as a negative result.
+- **First scan of 26.6 hours of unlabelled forest audio:** the study species was flagged 1.74 times as often as a control species on the same files. None of these detections has been confirmed by an expert yet.
+
+<img src="assets/shot_count.png" alt="Species AUC against number of labelled examples" width="640">
+
+## Limitations
+
+- No external benchmark yet; the DCASE Task 5 benchmark is next.
+- Target calls in the tests are planted, and no wild detection is confirmed.
+- The five calls may come from only a few individual birds: 12 of the 22 recordings come from one team at one location.
+- The pipeline still needs Perch at detection time.
+
+We also keep a record of our own claims that we later withdrew, and why. It is in the lab notebook and in Appendix A of the extended paper.
+
+## What is in this repository
 
 ```
-arguswala_setup_v2.py     Cell 1 — data loading, decoy selection, verifier calibration
-arguswala_v2.py           Cell 2 — two-stage detection across all target species
-arguswala_sweeps.py       Cell 3 — shot-count and shot-selection-strategy experiments
-arguswala_ladder.py       Cell 4 — ablation ladder (tests published techniques honestly)
-ARGUS_Kaggle_Notebook.ipynb   The four cells above, packaged to import directly into Kaggle
-
-site/index.html           Live demo — mic capture, results dashboard, all analysis charts
-assets/                   Performance charts used in this README, generated from real run data
-
-ARGUS_TrackA_Lab_Notebook.md   Full dated engineering log — every bug, every retraction, every real number
-ARGUS_Literature_Review.md     ~20 papers reviewed and positioned against this project
-ARGUS_Roadmap_Aug_Sept_2026.md What's automated, what's manual, what's next
-ARGUS_Hardware_Deployment_Roadmap.md   Honest split: what's built vs. what's planned for field deployment
-
-data/                              All raw CSV outputs, listed below
-data/argus_multispecies_results.csv     Raw output of the full 10-species run
-data/argus_species_covariates.csv       Per-species covariates (stereotypy, decoy similarity, etc.)
-data/argus_sweep_shot_count.csv         Shot-count sweep raw output
-data/argus_sweep_shot_strategy.csv      Shot-selection-strategy sweep raw output
-data/argus_sweep_snr.csv                SNR-robustness sweep raw output
-data/argus_sweep_decoy_difficulty.csv   Decoy-difficulty sweep raw output
-data/argus_ablation_ladder.csv          Full ablation-ladder raw output (feature x verifier x hard-negatives)
-data/argus_confounds.csv                Confound-closing runs, complete (55/55 rows — see lab notebook Day 35)
+index.html                      the live site (argussite.vercel.app)
+submission/                     the paper, its extended version and the synopsis (PDF)
+ARGUS_TrackA_Lab_Notebook.md    dated lab notebook
+data/                           the eleven CSV files every number comes from
+code/                           the pipeline, its tests and the Kaggle notebooks
+assets/                         the charts in this README, generated from data/
+old/                            an early notebook, kept for the record
 ```
 
-Files prefixed `_` are working/scratch scripts, not part of the pipeline itself.
+**code/**
+
+| File | What it does | Writes |
+|---|---|---|
+| `arguswala_setup_v2.py` | Cell 1: data loading, decoy selection, Perch set-up | |
+| `arguswala_v2.py` | Cell 2: two-stage detection across all ten species | `argus_multispecies_results.csv` |
+| `arguswala_sweeps.py` | Cell 3: number of examples, choice of examples, call loudness, decoy difficulty | the four `argus_sweep_*.csv` files |
+| `arguswala_ladder.py` | Cell 4: ablation ladder of published techniques, and the noise floor | `argus_ablation_ladder.csv` |
+| `arguswala_confounds.py` | Cell 5: the three alternative-explanation tests | `argus_confounds.csv` |
+| `arguswala_distill.py` | Cell 6: distilling Perch into the small network | `argus_distill.csv` |
+| `arguswala_frontier.py` | Cell 7: width sweep and the wild-audio scan | `argus_frontier.csv`, `argus_wildscan.csv` |
+| `ARGUS_Kaggle_Notebook.ipynb` | the seven cells above as one notebook, built by `_build_notebook.py` | |
+| `ARGUS_Demo_Snapshot.ipynb`, `arguswala_demo_v2.py` | make the snapshot of a real run that the live site replays | |
+| `_test_*.py` | five test suites for the pipeline logic; no GPU or dataset needed | |
+
+`data/argus_species_covariates.csv` holds per-species covariates (such as how similar a species' calls are to each other).
+
+## Reproducing
+
+1. On Kaggle, open `code/ARGUS_Kaggle_Notebook.ipynb`, attach the BirdCLEF 2024 competition data and the Perch v2 model, turn on a GPU and run the cells in order. A full run takes several GPU hours, and each cell writes its CSV to the output.
+2. The tests run anywhere: `cd code`, then `python _test_v2_logic.py` (and the other four `_test_*.py` files).
+3. Every number in the paper can be recomputed from `data/`. Appendix B of the extended paper says which file and column each one comes from.
 
 ## Built with
 
-Python · PyTorch (stage-1 encoder, trained from scratch) · TensorFlow / TensorFlow Hub (Perch v2) · scikit-learn · ONNX Runtime · librosa · FastAPI · vanilla JavaScript (hand-rolled SVG charts, Web Audio API — no charting library, no frontend framework) · Kaggle (GPU training/inference)
+Python, PyTorch (stage-1 network, trained from scratch), TensorFlow Hub (Perch v2), scikit-learn, ONNX Runtime, librosa, and plain JavaScript for the site (hand-written SVG charts and the Web Audio API). Experiments ran on Kaggle GPUs.
 
-## Closing three confounds
+## Acknowledgements
 
-An adversarial review of this project named three questions it could not yet answer live
-in a judge interview. Run for real on 29 Aug 2026 (`data/argus_confounds.csv`):
+Thanks to Chiti Arvind (IISER Tirupati) for feedback on this species' song, and to Tom Denton (Google DeepMind) for answering our question about distilling Perch. Data: BirdCLEF 2024. Model: Perch v2.
 
-- **"Isn't this just Perch?"** Ran Perch alone as a standalone detector, no stage-1 CNN
-  anywhere in the path. It collapses to 0.526 mean species AUC (chance is 0.50) and 2.5%
-  mean recall — it finds almost nothing. Verified pipeline vs. Perch alone: **−0.209**,
-  clear of the noise bound. Neither stage substitutes for the other.
-- **"Did it learn the microphone, not the bird?"** Rebuilt the held-out pool so it can
-  never share a recordist with the five support calls. Verified AUC change: **−0.032**
-  against a 0.062 bound — flat. One species moved more than the rest (bcnher, −0.121,
-  still inside its own wider bound) and is disclosed rather than smoothed over.
-- **Does stage 1's negative-sampling choice matter?** Settled 30 Aug at six seeds after
-  coming back too close to call at two: species-matched negatives leave stage-1-alone
-  **flat** (+0.034, inside its bound) but make the verified pipeline **worse**
-  (−0.050, negative in 5 of 5 species) — the opposite of what the published literature
-  predicts. Consistent with the ablation ladder's independent finding that hard-negative
-  mining also hurts in this regime.
-
-Full numbers and reasoning: `ARGUS_TrackA_Lab_Notebook.md`, Day 35.
-
-## Honesty, by design
-
-This project keeps a public record of what didn't work alongside what did — including retracted claims, a discovered noise floor that overturned an earlier conclusion, and real bugs found and fixed with regression tests. See the "What did not work" section of the live demo, or `ARGUS_TrackA_Lab_Notebook.md` for the full account. We think that record is worth more than a version of this README that only shows the wins.
-
-## Team
-
-Subham Sai Samal · Vlkramzharis
-
-<!-- TODO: add a LICENSE file and reference it here if you want this repo publicly licensed -->
+Generative AI tools (Claude, Antigravity) wrote much of the code and helped draft the text in this repository. All experiments and results are our own.
