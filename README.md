@@ -3,7 +3,7 @@
 Few-shot bioacoustic detection for a threatened Western Ghats bird. ARGUS learns a new species from five example calls, then checks each detection separately to make sure it really is that species and not a bird that sounds like it.
 
 - **Live site:** https://argussite.vercel.app/
-- **Paper:** [ARGUS_Research_Paper.pdf](submission/ARGUS_Research_Paper.pdf) (13 pages) and an [extended version](submission/ARGUS_Research_Paper_extended.pdf) (26 pages, every experiment in full)
+- **Paper:** [ARGUS_Research_Paper.pdf](submission/ARGUS_Research_Paper.pdf) (15 pages) and an [extended version](submission/ARGUS_Research_Paper_extended.pdf) (26 pages, every experiment in full)
 - **Synopsis:** [ARGUS_IRIS_Synopsis.pdf](submission/ARGUS_IRIS_Synopsis.pdf) (2 pages)
 - **Lab notebook:** [ARGUS_TrackA_Lab_Notebook.md](ARGUS_TrackA_Lab_Notebook.md)
 
