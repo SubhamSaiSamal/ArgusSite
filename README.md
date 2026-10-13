@@ -3,11 +3,11 @@
 Few-shot bioacoustic detection for a threatened Western Ghats bird. ARGUS learns a new species from five example calls, then checks each detection separately to make sure it really is that species and not a bird that sounds like it.
 
 - **Live site:** https://argussite.vercel.app/
-- **Paper:** [ARGUS_Research_Paper.pdf](submission/ARGUS_Research_Paper.pdf) (15 pages) and an [extended version](submission/ARGUS_Research_Paper_extended.pdf) (26 pages, every experiment in full)
+- **Paper:** [ARGUS_Research_Paper.pdf](submission/ARGUS_Research_Paper.pdf) (14 pages) and an [extended version](submission/ARGUS_Research_Paper_extended.pdf) (26 pages, every experiment in full)
 - **Synopsis:** [ARGUS_IRIS_Synopsis.pdf](submission/ARGUS_IRIS_Synopsis.pdf) (2 pages)
 - **Lab notebook:** [ARGUS_TrackA_Lab_Notebook.md](ARGUS_TrackA_Lab_Notebook.md)
 
-By Subham Sai Samal and Vikramzharis, guided by Mrs. Valarmathy. IRIS National Fair 2026, Earth & Environmental Sciences.
+By Subham Sai Samal, guided by Mrs. Valarmathy. IRIS National Fair 2026, Earth & Environmental Sciences.
 
 ## Why
 
@@ -117,6 +117,6 @@ Python, PyTorch (stage-1 network, trained from scratch), TensorFlow Hub (Perch v
 
 ## Acknowledgements
 
-Thanks to Chiti Arvind (IISER Tirupati) for feedback on this species' song, and to Tom Denton (Google DeepMind) for answering our question about distilling Perch. Data: BirdCLEF 2024. Model: Perch v2.
+Vikramzharis worked on this project as a team member until October 2026. Thanks to Chiti Arvind (IISER Tirupati) for feedback on this species' song, and to Tom Denton (Google DeepMind) for answering our question about distilling Perch. Data: BirdCLEF 2024. Model: Perch v2.
 
 Generative AI tools (Claude, Antigravity) wrote much of the code and helped draft the text in this repository. All experiments and results are our own.

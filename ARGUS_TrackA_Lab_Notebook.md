@@ -2765,7 +2765,7 @@ first; independent of Cells 3/4) and logging what it actually finds — includin
 
 ## Day 34 — 2026-08-28 — Run 4: a clean replication, and two of our own bugs it exposed
 
-A 12-hour Kaggle session (`vikramzharis/notebook4e30bfbdf6`, T4 x2) ran overnight and was
+A 12-hour Kaggle session ([a teammate's Kaggle account; name removed 13 Oct 2026], T4 x2) ran overnight and was
 killed at the hard 43,200s ceiling, exit 137, during ablation config 10/10. **Cell 5 never
 executed** — the three confound-closing runs written on Day 33 are still unrun, and no
 `argus_confounds.csv` exists. Cause is not a bug: the uploaded notebook was the Day-33 build
